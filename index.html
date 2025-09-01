@@ -99,6 +99,9 @@
                 <button onclick="exportToPDF()" class="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
                     📄 Exportar PDF
                 </button>
+                <button onclick="printFullReport()" class="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                    🖨️ Imprimir Todo
+                </button>
                 <button onclick="toggleDataEditor()" id="editorToggle" class="bg-purple-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-900 transition-colors">
                     ⚙️ Editor de Datos
                 </button>
@@ -635,6 +638,9 @@
             try {
                 collectFormData();
                 
+                // Guardar datos en localStorage para persistencia
+                localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
+                
                 // Destruir gráficos existentes
                 Object.values(charts).forEach(chart => {
                     if (chart) chart.destroy();
@@ -649,9 +655,50 @@
                     document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
                 }
                 
-                alert('✅ Datos guardados y gráficos actualizados correctamente');
+                // Actualizar fecha de última modificación
+                const now = new Date().toLocaleString('es-ES');
+                localStorage.setItem('lastUpdate', now);
+                document.getElementById('lastUpdate').textContent = now;
+                
+                alert('✅ Datos guardados permanentemente y gráficos actualizados correctamente');
             } catch (error) {
                 alert('❌ Error al guardar los datos: ' + error.message);
+            }
+        }
+
+        // Función para cargar datos guardados
+        function loadSavedData() {
+            try {
+                const savedData = localStorage.getItem('microbiologicalData');
+                const savedUpdate = localStorage.getItem('lastUpdate');
+                
+                if (savedData) {
+                    currentData = JSON.parse(savedData);
+                    console.log('✅ Datos cargados desde almacenamiento local');
+                }
+                
+                if (savedUpdate) {
+                    document.getElementById('lastUpdate').textContent = savedUpdate;
+                }
+            } catch (error) {
+                console.log('⚠️ No se pudieron cargar datos guardados, usando datos por defecto');
+                currentData = JSON.parse(JSON.stringify(defaultData));
+            }
+        }
+
+        // Función para auto-guardar datos cuando se modifican
+        function autoSaveData() {
+            try {
+                collectFormData();
+                localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
+                
+                const now = new Date().toLocaleString('es-ES');
+                localStorage.setItem('lastUpdate', now);
+                document.getElementById('lastUpdate').textContent = now;
+                
+                console.log('💾 Datos guardados automáticamente');
+            } catch (error) {
+                console.log('❌ Error en auto-guardado:', error.message);
             }
         }
 
@@ -1323,60 +1370,504 @@
             });
         }
 
-        // Función para exportar a PDF
-        function exportToPDF() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            
-            // Configurar el PDF
-            pdf.setFontSize(20);
-            pdf.text('Dashboard Microbiológico 2025', 20, 20);
-            
-            pdf.setFontSize(12);
-            pdf.text('Reporte generado el: ' + new Date().toLocaleDateString('es-ES'), 20, 30);
-            
-            // Agregar resumen general
-            pdf.setFontSize(16);
-            pdf.text('Resumen General', 20, 45);
-            
-            pdf.setFontSize(12);
-            const cumplimiento = document.getElementById('cumplimiento-porcentaje').textContent;
-            const totalMuestras = document.getElementById('total-muestras').textContent;
-            const noConformidades = document.getElementById('no-conformidades').textContent;
-            const acciones = document.getElementById('acciones-correctivas').textContent;
-            
-            pdf.text(`Cumplimiento General: ${cumplimiento}`, 20, 55);
-            pdf.text(`Total de Muestras: ${totalMuestras}`, 20, 65);
-            pdf.text(`No Conformidades: ${noConformidades}`, 20, 75);
-            pdf.text(`Acciones Correctivas: ${acciones}`, 20, 85);
-            
-            // Agregar tabla de plan de acción
-            if (currentData.planAccion && currentData.planAccion.length > 0) {
-                pdf.setFontSize(16);
-                pdf.text('Plan de Acción', 20, 105);
+        // Función para exportar a PDF completo
+        async function exportToPDF() {
+            try {
+                // Mostrar mensaje de progreso
+                const originalText = document.querySelector('button[onclick="exportToPDF()"]').textContent;
+                document.querySelector('button[onclick="exportToPDF()"]').textContent = '⏳ Generando PDF...';
                 
-                let yPosition = 115;
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                let currentPage = 1;
+                
+                // Función para agregar encabezado en cada página
+                function addHeader(pageNum) {
+                    pdf.setFontSize(16);
+                    pdf.setTextColor(102, 126, 234);
+                    pdf.text('🧪 Dashboard Microbiológico 2025', 20, 15);
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(128, 128, 128);
+                    pdf.text(`Página ${pageNum} - Generado: ${new Date().toLocaleDateString('es-ES')}`, 20, 25);
+                    pdf.setTextColor(0, 0, 0);
+                }
+                
+                // Página 1: Resumen General
+                addHeader(currentPage);
+                pdf.setFontSize(18);
+                pdf.text('📊 RESUMEN GENERAL', 20, 40);
+                
+                pdf.setFontSize(12);
+                const cumplimiento = document.getElementById('cumplimiento-porcentaje').textContent;
+                const totalMuestras = document.getElementById('total-muestras').textContent;
+                const noConformidades = document.getElementById('no-conformidades').textContent;
+                const acciones = document.getElementById('acciones-correctivas').textContent;
+                
+                pdf.text(`✅ Cumplimiento General: ${cumplimiento}`, 20, 55);
+                pdf.text(`📊 Total de Muestras Analizadas: ${totalMuestras}`, 20, 65);
+                pdf.text(`⚠️ No Conformidades Detectadas: ${noConformidades}`, 20, 75);
+                pdf.text(`📋 Acciones Correctivas Implementadas: ${acciones}`, 20, 85);
+                
+                // Agregar datos detallados por sección
+                let yPos = 100;
+                
+                // Producto en Proceso
+                pdf.setFontSize(14);
+                pdf.text('🏭 PRODUCTO EN PROCESO', 20, yPos);
+                yPos += 10;
+                
                 pdf.setFontSize(10);
-                
-                currentData.planAccion.forEach((accion, index) => {
-                    if (yPosition > 250) {
+                const productoData = currentData.productoEnProceso;
+                productoData.meses.forEach((mes, index) => {
+                    if (yPos > 250) {
                         pdf.addPage();
-                        yPosition = 20;
+                        currentPage++;
+                        addHeader(currentPage);
+                        yPos = 40;
                     }
                     
-                    pdf.text(`${index + 1}. Fecha: ${accion.fecha}`, 20, yPosition);
-                    pdf.text(`   Muestreo: ${accion.muestreo}`, 20, yPosition + 5);
-                    pdf.text(`   Resultado: ${accion.resultado}`, 20, yPosition + 10);
-                    pdf.text(`   Acción: ${accion.accionCorrectiva}`, 20, yPosition + 15);
-                    pdf.text(`   Responsable: ${accion.responsable}`, 20, yPosition + 20);
-                    pdf.text(`   Estado: ${accion.estado}`, 20, yPosition + 25);
+                    const mesofilos = productoData.mesofilosAerobios.resultados[index];
+                    const coliformes = productoData.coliformesTotales.resultados[index];
+                    const ecoli = productoData.eColi.resultados[index];
                     
-                    yPosition += 35;
+                    pdf.text(`${mes}: Mesófilos: ${mesofilos} UFC/g, Coliformes: ${coliformes} UFC/g, E.coli: ${ecoli} UFC/g`, 25, yPos);
+                    yPos += 8;
                 });
+                
+                // Nueva página para Superficies Inertes
+                pdf.addPage();
+                currentPage++;
+                addHeader(currentPage);
+                yPos = 40;
+                
+                pdf.setFontSize(14);
+                pdf.text('🧽 SUPERFICIES INERTES', 20, yPos);
+                yPos += 10;
+                
+                pdf.setFontSize(10);
+                const inertesData = currentData.superficiesInertes;
+                inertesData.meses.forEach((mes, index) => {
+                    if (yPos > 240) {
+                        pdf.addPage();
+                        currentPage++;
+                        addHeader(currentPage);
+                        yPos = 40;
+                    }
+                    
+                    pdf.text(`${mes}:`, 25, yPos);
+                    yPos += 6;
+                    
+                    for (let i = 1; i <= 4; i++) {
+                        const mesofilos = inertesData.mesofilosAerobios[`resultado${i}`][index];
+                        const coliformes = inertesData.coliformesTotales[`resultado${i}`][index];
+                        pdf.text(`  Resultado ${i}: Mesófilos: ${mesofilos} UFC/cm², Coliformes: ${coliformes} UFC/cm²`, 30, yPos);
+                        yPos += 5;
+                    }
+                    yPos += 3;
+                });
+                
+                // Nueva página para Superficies Vivas
+                pdf.addPage();
+                currentPage++;
+                addHeader(currentPage);
+                yPos = 40;
+                
+                pdf.setFontSize(14);
+                pdf.text('👐 SUPERFICIES VIVAS (MANOS)', 20, yPos);
+                yPos += 10;
+                
+                pdf.setFontSize(10);
+                const vivasData = currentData.superficiesVivas;
+                vivasData.meses.forEach((mes, index) => {
+                    if (yPos > 230) {
+                        pdf.addPage();
+                        currentPage++;
+                        addHeader(currentPage);
+                        yPos = 40;
+                    }
+                    
+                    pdf.text(`${mes}:`, 25, yPos);
+                    yPos += 6;
+                    
+                    const mesofilosProceso = vivasData.mesofilosAerobios.manosEnProceso[index];
+                    const mesofilosLavadas = vivasData.mesofilosAerobios.manosLavadas[index];
+                    const coliformesProceso = vivasData.coliformesTotales.manosEnProceso[index];
+                    const coliformesLavadas = vivasData.coliformesTotales.manosLavadas[index];
+                    const aureusProceso = vivasData.sAureus.manosEnProceso[index];
+                    const aureusLavadas = vivasData.sAureus.manosLavadas[index];
+                    
+                    pdf.text(`  Manos en Proceso: Mesófilos: ${mesofilosProceso}, Coliformes: ${coliformesProceso}, S.Aureus: ${aureusProceso}`, 30, yPos);
+                    yPos += 5;
+                    pdf.text(`  Manos Lavadas: Mesófilos: ${mesofilosLavadas}, Coliformes: ${coliformesLavadas}, S.Aureus: ${aureusLavadas}`, 30, yPos);
+                    yPos += 8;
+                });
+                
+                // Nueva página para Ambiental
+                pdf.addPage();
+                currentPage++;
+                addHeader(currentPage);
+                yPos = 40;
+                
+                pdf.setFontSize(14);
+                pdf.text('🌡️ ANÁLISIS AMBIENTAL', 20, yPos);
+                yPos += 10;
+                
+                pdf.setFontSize(10);
+                const ambientalData = currentData.ambiental;
+                ambientalData.meses.forEach((mes, index) => {
+                    if (yPos > 250) {
+                        pdf.addPage();
+                        currentPage++;
+                        addHeader(currentPage);
+                        yPos = 40;
+                    }
+                    
+                    const mesofilos = ambientalData.mesofilosAerobios.resultados[index];
+                    const mohos = ambientalData.mohos.resultados[index];
+                    const listeria = ambientalData.listeria.resultados[index];
+                    
+                    pdf.text(`${mes}: Mesófilos: ${mesofilos} UFC/cm³, Mohos: ${mohos} UFC/cm³, Listeria: ${listeria} UFC/cm³`, 25, yPos);
+                    yPos += 8;
+                });
+                
+                // Nueva página para Plan de Acción
+                if (currentData.planAccion && currentData.planAccion.length > 0) {
+                    pdf.addPage();
+                    currentPage++;
+                    addHeader(currentPage);
+                    yPos = 40;
+                    
+                    pdf.setFontSize(14);
+                    pdf.text('⚠️ PLAN DE ACCIÓN CORRECTIVA', 20, yPos);
+                    yPos += 15;
+                    
+                    pdf.setFontSize(10);
+                    currentData.planAccion.forEach((accion, index) => {
+                        if (yPos > 220) {
+                            pdf.addPage();
+                            currentPage++;
+                            addHeader(currentPage);
+                            yPos = 40;
+                        }
+                        
+                        pdf.setFontSize(12);
+                        pdf.text(`Acción Correctiva #${index + 1}`, 20, yPos);
+                        yPos += 8;
+                        
+                        pdf.setFontSize(10);
+                        pdf.text(`📅 Fecha: ${accion.fecha}`, 25, yPos);
+                        yPos += 5;
+                        pdf.text(`🔬 Tipo de Muestreo: ${accion.muestreo}`, 25, yPos);
+                        yPos += 5;
+                        pdf.text(`📊 Resultado: ${accion.resultado}`, 25, yPos);
+                        yPos += 5;
+                        
+                        // Dividir texto largo en múltiples líneas
+                        const accionLines = pdf.splitTextToSize(`🔧 Acción Correctiva: ${accion.accionCorrectiva}`, 160);
+                        pdf.text(accionLines, 25, yPos);
+                        yPos += accionLines.length * 5;
+                        
+                        pdf.text(`👤 Responsable: ${accion.responsable}`, 25, yPos);
+                        yPos += 5;
+                        pdf.text(`✅ Fecha de Cierre: ${accion.fechaCierre}`, 25, yPos);
+                        yPos += 5;
+                        pdf.text(`📋 Estado: ${accion.estado}`, 25, yPos);
+                        yPos += 15;
+                    });
+                }
+                
+                // Página final con límites de referencia
+                pdf.addPage();
+                currentPage++;
+                addHeader(currentPage);
+                yPos = 40;
+                
+                pdf.setFontSize(14);
+                pdf.text('📋 LÍMITES DE REFERENCIA', 20, yPos);
+                yPos += 15;
+                
+                pdf.setFontSize(10);
+                pdf.text('🏭 Producto en Proceso:', 20, yPos);
+                yPos += 6;
+                pdf.text('  • Mesófilos Aerobios: ≤ 10,000 UFC/g', 25, yPos);
+                yPos += 5;
+                pdf.text('  • Coliformes Totales: ≤ 500 UFC/g', 25, yPos);
+                yPos += 5;
+                pdf.text('  • E. coli: ≤ 500 UFC/g', 25, yPos);
+                yPos += 10;
+                
+                pdf.text('🧽 Superficies Inertes:', 20, yPos);
+                yPos += 6;
+                pdf.text('  • Mesófilos Aerobios: ≤ 400 UFC/cm²', 25, yPos);
+                yPos += 5;
+                pdf.text('  • Coliformes Totales: ≤ 200 UFC/cm²', 25, yPos);
+                yPos += 10;
+                
+                pdf.text('👐 Superficies Vivas (Manos):', 20, yPos);
+                yPos += 6;
+                pdf.text('  • Mesófilos Aerobios: ≤ 3,000 UFC/cm²', 25, yPos);
+                yPos += 5;
+                pdf.text('  • Coliformes Totales: ≤ 10 UFC/cm²', 25, yPos);
+                yPos += 5;
+                pdf.text('  • S. Aureus: 0 UFC/cm² (No detectable)', 25, yPos);
+                yPos += 10;
+                
+                pdf.text('🌡️ Ambiental:', 20, yPos);
+                yPos += 6;
+                pdf.text('  • Mesófilos Aerobios: ≤ 200 UFC/cm³', 25, yPos);
+                yPos += 5;
+                pdf.text('  • Mohos: ≤ 100 UFC/cm³', 25, yPos);
+                yPos += 5;
+                pdf.text('  • Listeria: 0 UFC/cm³ (No detectable)', 25, yPos);
+                
+                // Guardar el PDF
+                pdf.save('Dashboard_Microbiologico_2025_Completo.pdf');
+                
+                // Restaurar texto del botón
+                document.querySelector('button[onclick="exportToPDF()"]').textContent = originalText;
+                
+                alert('✅ PDF completo generado exitosamente con todos los datos y secciones');
+                
+            } catch (error) {
+                alert('❌ Error al generar el PDF: ' + error.message);
+                document.querySelector('button[onclick="exportToPDF()"]').textContent = originalText;
+            }
+        }
+
+        // Función para imprimir página completa
+        function printFullReport() {
+            // Guardar estado actual
+            const currentTab = document.querySelector('.tab-active').id;
+            
+            // Crear ventana de impresión con todos los datos
+            const printWindow = window.open('', '_blank');
+            const printContent = generatePrintableContent();
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Dashboard Microbiológico 2025 - Reporte Completo</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .section { margin-bottom: 40px; page-break-inside: avoid; }
+                        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; }
+                        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        .data-table th { background-color: #f5f5f5; font-weight: bold; }
+                        .compliant { background-color: #d4edda; }
+                        .non-compliant { background-color: #f8d7da; }
+                        .page-break { page-break-before: always; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    ${printContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        }
+
+        // Generar contenido imprimible
+        function generatePrintableContent() {
+            const now = new Date().toLocaleDateString('es-ES');
+            let content = `
+                <div class="header">
+                    <h1>🧪 Dashboard Microbiológico 2025</h1>
+                    <p>Reporte Completo - Generado el ${now}</p>
+                </div>
+            `;
+            
+            // Resumen General
+            content += `
+                <div class="section">
+                    <h2 class="section-title">📊 Resumen General</h2>
+                    <p><strong>Cumplimiento General:</strong> ${document.getElementById('cumplimiento-porcentaje').textContent}</p>
+                    <p><strong>Total de Muestras:</strong> ${document.getElementById('total-muestras').textContent}</p>
+                    <p><strong>No Conformidades:</strong> ${document.getElementById('no-conformidades').textContent}</p>
+                    <p><strong>Acciones Correctivas:</strong> ${document.getElementById('acciones-correctivas').textContent}</p>
+                </div>
+            `;
+            
+            // Producto en Proceso
+            content += generateSectionTable('🏭 Producto en Proceso', currentData.productoEnProceso);
+            
+            // Superficies Inertes
+            content += generateInertesTable();
+            
+            // Superficies Vivas
+            content += generateVivasTable();
+            
+            // Ambiental
+            content += generateAmbientalTable();
+            
+            // Plan de Acción
+            content += generateAccionesTable();
+            
+            return content;
+        }
+
+        // Generar tabla de sección
+        function generateSectionTable(title, data) {
+            let content = `<div class="section page-break"><h2 class="section-title">${title}</h2>`;
+            
+            if (title.includes('Producto')) {
+                content += `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Mesófilos Aerobios (UFC/g)</th>
+                                <th>Coliformes Totales (UFC/g)</th>
+                                <th>E. coli (UFC/g)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.meses.forEach((mes, index) => {
+                    const mesofilos = data.mesofilosAerobios.resultados[index];
+                    const coliformes = data.coliformesTotales.resultados[index];
+                    const ecoli = data.eColi.resultados[index];
+                    
+                    content += `
+                        <tr>
+                            <td>${mes}</td>
+                            <td class="${mesofilos <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${mesofilos}</td>
+                            <td class="${coliformes <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${coliformes}</td>
+                            <td class="${ecoli <= data.eColi.limite ? 'compliant' : 'non-compliant'}">${ecoli}</td>
+                        </tr>
+                    `;
+                });
+                
+                content += `</tbody></table>`;
+                content += `<p><strong>Límites:</strong> Mesófilos ≤${data.mesofilosAerobios.limite}, Coliformes ≤${data.coliformesTotales.limite}, E.coli ≤${data.eColi.limite}</p>`;
             }
             
-            // Guardar el PDF
-            pdf.save('Dashboard_Microbiologico_2025.pdf');
+            content += `</div>`;
+            return content;
+        }
+
+        function generateInertesTable() {
+            const data = currentData.superficiesInertes;
+            let content = `<div class="section page-break"><h2 class="section-title">🧽 Superficies Inertes</h2>`;
+            
+            content += `<table class="data-table"><thead><tr><th>Mes</th><th>Parámetro</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th></tr></thead><tbody>`;
+            
+            data.meses.forEach((mes, index) => {
+                content += `
+                    <tr>
+                        <td rowspan="2">${mes}</td>
+                        <td>Mesófilos Aerobios</td>
+                        <td class="${data.mesofilosAerobios.resultado1[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.resultado1[index]}</td>
+                        <td class="${data.mesofilosAerobios.resultado2[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.resultado2[index]}</td>
+                        <td class="${data.mesofilosAerobios.resultado3[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.resultado3[index]}</td>
+                        <td class="${data.mesofilosAerobios.resultado4[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.resultado4[index]}</td>
+                    </tr>
+                    <tr>
+                        <td>Coliformes Totales</td>
+                        <td class="${data.coliformesTotales.resultado1[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.resultado1[index]}</td>
+                        <td class="${data.coliformesTotales.resultado2[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.resultado2[index]}</td>
+                        <td class="${data.coliformesTotales.resultado3[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.resultado3[index]}</td>
+                        <td class="${data.coliformesTotales.resultado4[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.resultado4[index]}</td>
+                    </tr>
+                `;
+            });
+            
+            content += `</tbody></table>`;
+            content += `<p><strong>Límites:</strong> Mesófilos ≤${data.mesofilosAerobios.limite} UFC/cm², Coliformes ≤${data.coliformesTotales.limite} UFC/cm²</p></div>`;
+            return content;
+        }
+
+        function generateVivasTable() {
+            const data = currentData.superficiesVivas;
+            let content = `<div class="section page-break"><h2 class="section-title">👐 Superficies Vivas (Manos)</h2>`;
+            
+            content += `<table class="data-table"><thead><tr><th>Mes</th><th>Parámetro</th><th>Manos en Proceso</th><th>Manos Lavadas</th></tr></thead><tbody>`;
+            
+            data.meses.forEach((mes, index) => {
+                content += `
+                    <tr>
+                        <td rowspan="3">${mes}</td>
+                        <td>Mesófilos Aerobios</td>
+                        <td class="${data.mesofilosAerobios.manosEnProceso[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.manosEnProceso[index]}</td>
+                        <td class="${data.mesofilosAerobios.manosLavadas[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.manosLavadas[index]}</td>
+                    </tr>
+                    <tr>
+                        <td>Coliformes Totales</td>
+                        <td class="${data.coliformesTotales.manosEnProceso[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.manosEnProceso[index]}</td>
+                        <td class="${data.coliformesTotales.manosLavadas[index] <= data.coliformesTotales.limite ? 'compliant' : 'non-compliant'}">${data.coliformesTotales.manosLavadas[index]}</td>
+                    </tr>
+                    <tr>
+                        <td>S. Aureus</td>
+                        <td class="${data.sAureus.manosEnProceso[index] <= data.sAureus.limite ? 'compliant' : 'non-compliant'}">${data.sAureus.manosEnProceso[index]}</td>
+                        <td class="${data.sAureus.manosLavadas[index] <= data.sAureus.limite ? 'compliant' : 'non-compliant'}">${data.sAureus.manosLavadas[index]}</td>
+                    </tr>
+                `;
+            });
+            
+            content += `</tbody></table>`;
+            content += `<p><strong>Límites:</strong> Mesófilos ≤${data.mesofilosAerobios.limite} UFC/cm², Coliformes ≤${data.coliformesTotales.limite} UFC/cm², S.Aureus ≤${data.sAureus.limite} UFC/cm²</p></div>`;
+            return content;
+        }
+
+        function generateAmbientalTable() {
+            const data = currentData.ambiental;
+            let content = `<div class="section page-break"><h2 class="section-title">🌡️ Análisis Ambiental</h2>`;
+            
+            content += `<table class="data-table"><thead><tr><th>Mes</th><th>Mesófilos Aerobios</th><th>Mohos</th><th>Listeria</th></tr></thead><tbody>`;
+            
+            data.meses.forEach((mes, index) => {
+                content += `
+                    <tr>
+                        <td>${mes}</td>
+                        <td class="${data.mesofilosAerobios.resultados[index] <= data.mesofilosAerobios.limite ? 'compliant' : 'non-compliant'}">${data.mesofilosAerobios.resultados[index]}</td>
+                        <td class="${data.mohos.resultados[index] <= data.mohos.limite ? 'compliant' : 'non-compliant'}">${data.mohos.resultados[index]}</td>
+                        <td class="${data.listeria.resultados[index] <= data.listeria.limite ? 'compliant' : 'non-compliant'}">${data.listeria.resultados[index]}</td>
+                    </tr>
+                `;
+            });
+            
+            content += `</tbody></table>`;
+            content += `<p><strong>Límites:</strong> Mesófilos ≤${data.mesofilosAerobios.limite} UFC/cm³, Mohos ≤${data.mohos.limite} UFC/cm³, Listeria ≤${data.listeria.limite} UFC/cm³</p></div>`;
+            return content;
+        }
+
+        function generateAccionesTable() {
+            let content = `<div class="section page-break"><h2 class="section-title">⚠️ Plan de Acción Correctiva</h2>`;
+            
+            if (currentData.planAccion && currentData.planAccion.length > 0) {
+                content += `<table class="data-table"><thead><tr><th>Fecha</th><th>Muestreo</th><th>Resultado</th><th>Acción Correctiva</th><th>Responsable</th><th>Estado</th></tr></thead><tbody>`;
+                
+                currentData.planAccion.forEach(accion => {
+                    content += `
+                        <tr>
+                            <td>${accion.fecha}</td>
+                            <td>${accion.muestreo}</td>
+                            <td>${accion.resultado}</td>
+                            <td>${accion.accionCorrectiva}</td>
+                            <td>${accion.responsable}</td>
+                            <td class="${accion.estado === 'Cerrada' ? 'compliant' : 'non-compliant'}">${accion.estado}</td>
+                        </tr>
+                    `;
+                });
+                
+                content += `</tbody></table>`;
+            } else {
+                content += `<p>No hay acciones correctivas registradas.</p>`;
+            }
+            
+            content += `</div>`;
+            return content;
         }
 
         // Función para inicializar formularios del editor
@@ -1754,6 +2245,12 @@
             } else {
                 input.classList.add('error');
             }
+            
+            // Auto-guardar después de 2 segundos de inactividad
+            clearTimeout(input.autoSaveTimeout);
+            input.autoSaveTimeout = setTimeout(() => {
+                autoSaveData();
+            }, 2000);
         }
 
         // Recopilar datos del plan de acción
@@ -1779,15 +2276,27 @@
 
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
-            // Mostrar fecha actual
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('es-ES');
+            // Cargar datos guardados si existen
+            loadSavedData();
             
-            // Cargar datos por defecto en el editor
+            // Mostrar fecha actual si no hay fecha guardada
+            if (!localStorage.getItem('lastUpdate')) {
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleDateString('es-ES');
+            }
+            
+            // Cargar datos en el editor
             document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
             
             // Inicializar con la primera pestaña
             showTab('resumen');
+            
+            // Mostrar mensaje de bienvenida si es la primera vez
+            if (!localStorage.getItem('microbiologicalData')) {
+                setTimeout(() => {
+                    alert('👋 ¡Bienvenido al Dashboard Microbiológico!\n\n✨ Características principales:\n• Los datos se guardan automáticamente\n• Puedes exportar reportes completos en PDF\n• La información se mantiene al compartir la página\n• Usa el "Editor de Datos" para modificar valores\n\n💡 Tip: Todos los cambios se guardan permanentemente en tu navegador.');
+                }, 1000);
+            }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9785cffc6591f061',t:'MTc1Njc0MDY2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9786f8ff7505ceb7',t:'MTc1Njc1MjgyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

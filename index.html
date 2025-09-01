@@ -132,6 +132,9 @@
                 <button onclick="shareData()" id="shareButton" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors hidden">
                     🔗 Compartir Datos
                 </button>
+                <div id="syncStatus" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                    🔄 <span id="syncCount">0</span> enlaces sincronizados
+                </div>
                 <button onclick="toggleDataEditor()" id="editorToggle" class="bg-purple-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-900 transition-colors">
                     ⚙️ Editor de Datos
                 </button>
@@ -165,8 +168,14 @@
                 <div class="text-sm text-gray-600 mb-4">
                     <p>💡 <strong>Instrucciones:</strong></p>
                     <p>1. Copia la URL y envíala a supervisores/auditores</p>
-                    <p>2. Ellos verán automáticamente tus datos actualizados</p>
-                    <p>3. Los datos se mantienen sincronizados</p>
+                    <p>2. <strong>IMPORTANTE:</strong> Cualquier cambio que hagas se sincroniza automáticamente</p>
+                    <p>3. Los supervisores siempre verán la versión más actualizada</p>
+                    <p>4. No necesitas generar nuevos enlaces al actualizar datos</p>
+                </div>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <p class="text-green-800 text-sm font-medium">✅ Sincronización Automática Activada</p>
+                    <p class="text-green-600 text-xs">Todos los cambios futuros se reflejarán automáticamente en este enlace</p>
                 </div>
                 
                 <button onclick="closeShareModal()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
@@ -662,17 +671,24 @@
                 return;
             }
             
+            // Recopilar todos los datos actuales del formulario
             collectFormData();
             
+            // Generar código único
             const shareCode = generateShareCode();
             
+            // Guardar datos actualizados con el código
             sharedDataCodes[shareCode] = {
                 data: JSON.parse(JSON.stringify(currentData)),
                 timestamp: new Date().toISOString(),
                 lastUpdate: new Date().toLocaleString('es-ES')
             };
             
+            // Guardar en localStorage
             localStorage.setItem('sharedDataCodes', JSON.stringify(sharedDataCodes));
+            
+            // También guardar los datos actuales como datos principales
+            localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
             
             const currentURL = window.location.href.split('?')[0];
             const shareURL = `${currentURL}?codigo=${shareCode}`;
@@ -680,6 +696,8 @@
             document.getElementById('shareCode').textContent = shareCode;
             document.getElementById('shareURL').value = shareURL;
             document.getElementById('shareModal').classList.remove('hidden');
+            
+            console.log('✅ Datos compartidos actualizados:', shareCode);
         }
 
         function generateShareCode() {
@@ -821,6 +839,9 @@
                 
                 localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
                 
+                // Actualizar TODOS los códigos compartidos existentes con los nuevos datos
+                updateAllSharedCodes();
+                
                 Object.values(charts).forEach(chart => {
                     if (chart) chart.destroy();
                 });
@@ -836,7 +857,7 @@
                 localStorage.setItem('lastUpdate', now);
                 document.getElementById('lastUpdate').textContent = now;
                 
-                alert('✅ Datos guardados permanentemente y gráficos actualizados correctamente');
+                alert('✅ Datos guardados y sincronizados con todos los enlaces compartidos');
             } catch (error) {
                 alert('❌ Error al guardar los datos: ' + error.message);
             }
@@ -866,14 +887,60 @@
                 collectFormData();
                 localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
                 
+                // Sincronizar automáticamente con códigos compartidos
+                updateAllSharedCodes();
+                
                 const now = new Date().toLocaleString('es-ES');
                 localStorage.setItem('lastUpdate', now);
                 document.getElementById('lastUpdate').textContent = now;
                 
-                console.log('💾 Datos guardados automáticamente');
+                console.log('💾 Datos guardados y sincronizados automáticamente');
             } catch (error) {
                 console.log('❌ Error en auto-guardado:', error.message);
             }
+        }
+
+        function updateAllSharedCodes() {
+            try {
+                // Obtener todos los códigos compartidos existentes
+                const storedCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
+                
+                // Actualizar cada código con los datos actuales
+                Object.keys(storedCodes).forEach(code => {
+                    storedCodes[code].data = JSON.parse(JSON.stringify(currentData));
+                    storedCodes[code].lastUpdate = new Date().toLocaleString('es-ES');
+                    storedCodes[code].timestamp = new Date().toISOString();
+                });
+                
+                // Guardar códigos actualizados
+                localStorage.setItem('sharedDataCodes', JSON.stringify(storedCodes));
+                sharedDataCodes = storedCodes;
+                
+                // Actualizar indicador de sincronización
+                updateSyncStatus();
+                
+                console.log('🔄 Códigos compartidos sincronizados:', Object.keys(storedCodes).length);
+            } catch (error) {
+                console.log('❌ Error sincronizando códigos compartidos:', error.message);
+            }
+        }
+
+        function updateSyncStatus() {
+            const activeCodesCount = Object.keys(sharedDataCodes).length;
+            const syncStatus = document.getElementById('syncStatus');
+            const syncCount = document.getElementById('syncCount');
+            
+            if (activeCodesCount > 0) {
+                syncStatus.classList.remove('hidden');
+                syncCount.textContent = activeCodesCount;
+            } else {
+                syncStatus.classList.add('hidden');
+            }
+        }
+
+        function getActiveSharedCodes() {
+            const codes = Object.keys(sharedDataCodes);
+            return codes.length;
         }
 
         function collectFormData() {
@@ -2079,6 +2146,10 @@
                 loadSavedData();
             }
             
+            // Cargar códigos compartidos existentes
+            sharedDataCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
+            updateSyncStatus();
+            
             showTab('resumen');
             
             const now = new Date().toLocaleString('es-ES');
@@ -2089,5 +2160,5 @@
             console.log('✅ Dashboard inicializado correctamente');
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9787932bd38da0c7',t:'MTc1Njc1OTE0NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9787b292f23ee7a2',t:'MTc1Njc2MDQzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

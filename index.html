@@ -3,2162 +3,632 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Microbiológico 2025</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Dashboard de Control Microbiológico TIF - 2025</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://html2canvas.herokuapp.com/dist/html2canvas.min.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .tab-active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
         .chart-container {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .json-editor {
-            font-family: 'Courier New', monospace;
-            background: #1f2937;
-            color: #f9fafb;
-        }
-        .editor-tab-active {
-            background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-            color: white;
-        }
-        .editor-tab-inactive {
-            background: #F3F4F6;
-            color: #6B7280;
-        }
-        .editor-tab-inactive:hover {
-            background: #E5E7EB;
-            color: #374151;
-        }
-        .form-input {
-            border: 2px solid #E5E7EB;
-            border-radius: 8px;
-            padding: 8px 12px;
-            transition: all 0.3s ease;
-        }
-        .form-input:focus {
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            outline: none;
-        }
-        .form-input.error {
-            border-color: #EF4444;
-            background-color: #FEF2F2;
-        }
-        .form-input.success {
-            border-color: #10B981;
-            background-color: #F0FDF4;
-        }
-        .month-card {
-            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.3s ease;
-        }
-        .month-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-        .parameter-section {
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .action-card {
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        .share-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
+            position: relative;
+            height: 40vh;
             width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
         }
-        .share-modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .modal {
+            display: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .status-cumple {
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-no-cumple {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         @media print {
-            .no-print { display: none !important; }
-            .print-break { page-break-before: always; }
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <!-- Header -->
-    <header class="gradient-bg text-white p-6 shadow-lg no-print">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+<body class="p-4 md:p-8">
+
+    <div id="app-container">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b">
             <div>
-                <h1 class="text-3xl font-bold mb-2">🧪 Dashboard Microbiológico 2025</h1>
-                <p class="text-blue-100">Control y seguimiento de análisis microbiológicos</p>
-                <div id="sharedDataInfo" class="hidden mt-2 bg-green-500 bg-opacity-20 px-3 py-1 rounded-lg">
-                    <span class="text-green-100 text-sm">📡 Datos compartidos cargados exitosamente</span>
-                </div>
+                <h1 class="text-3xl font-bold text-gray-800">Dashboard de Control Microbiológico TIF</h1>
+                <p class="text-gray-500">Reporte Anual de Cumplimiento - 2025</p>
+                 <p id="user-info" class="text-xs text-gray-400 mt-2"></p>
             </div>
-            <div class="flex space-x-3">
-                <button onclick="exportToPDF()" class="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                    📄 Exportar PDF
+            <div class="flex items-center gap-4 mt-4 md:mt-0 no-print">
+                 <button id="add-record-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Añadir Registro
                 </button>
-                <button onclick="printFullReport()" class="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                    🖨️ Imprimir Todo
+                <button id="export-pdf-btn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Exportar a PDF
                 </button>
-                <button onclick="connectGoogleDrive()" id="driveButton" class="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
-                    ☁️ Conectar Google Drive
-                </button>
-                <button onclick="shareData()" id="shareButton" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors hidden">
-                    🔗 Compartir Datos
-                </button>
-                <div id="syncStatus" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
-                    🔄 <span id="syncCount">0</span> enlaces sincronizados
-                </div>
-                <button onclick="toggleDataEditor()" id="editorToggle" class="bg-purple-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-900 transition-colors">
-                    ⚙️ Editor de Datos
-                </button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="mb-6 no-print">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300" data-tab="proceso">Producto en Proceso</button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300" data-tab="inertes">Superficies Inertes</button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300" data-tab="vivas">Superficies Vivas</button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300" data-tab="ambiental">Ambiental</button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300" data-tab="plan">Plan de Acción</button>
+                </nav>
             </div>
         </div>
-    </header>
 
-    <!-- Modal de Compartir -->
-    <div id="shareModal" class="share-modal hidden">
-        <div class="share-modal-content">
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">🔗 Compartir Dashboard</h3>
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <p class="text-green-800 font-medium mb-2">✅ Datos guardados exitosamente</p>
-                    <p class="text-sm text-green-600">Código de compartir generado:</p>
-                    <div class="bg-white border-2 border-green-300 rounded-lg p-3 mt-2">
-                        <span id="shareCode" class="text-2xl font-bold text-green-700 tracking-wider">ABC12345</span>
-                    </div>
+        <main id="print-section">
+            <!-- Content Sections -->
+            <div id="tab-content">
+                <div class="text-center py-10">
+                    <div class="loader inline-block"></div>
+                    <p class="mt-4 text-gray-600">Cargando datos, por favor espere...</p>
                 </div>
-                
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p class="text-blue-800 font-medium mb-2">🌐 URL para compartir:</p>
-                    <div class="bg-white border border-blue-300 rounded-lg p-2">
-                        <input type="text" id="shareURL" readonly class="w-full text-sm text-blue-700 bg-transparent border-none outline-none" value="">
-                    </div>
-                    <button onclick="copyShareURL()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                        📋 Copiar URL
-                    </button>
-                </div>
-                
-                <div class="text-sm text-gray-600 mb-4">
-                    <p>💡 <strong>Instrucciones:</strong></p>
-                    <p>1. Copia la URL y envíala a supervisores/auditores</p>
-                    <p>2. <strong>IMPORTANTE:</strong> Cualquier cambio que hagas se sincroniza automáticamente</p>
-                    <p>3. Los supervisores siempre verán la versión más actualizada</p>
-                    <p>4. No necesitas generar nuevos enlaces al actualizar datos</p>
-                </div>
-                
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                    <p class="text-green-800 text-sm font-medium">✅ Sincronización Automática Activada</p>
-                    <p class="text-green-600 text-xs">Todos los cambios futuros se reflejarán automáticamente en este enlace</p>
-                </div>
-                
-                <button onclick="closeShareModal()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                    Cerrar
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para añadir datos -->
+    <div id="data-modal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full items-center justify-center p-4">
+        <div class="relative mx-auto p-8 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center pb-3 border-b">
+                <p id="modal-title" class="text-2xl font-bold text-gray-800">Añadir Nuevo Registro</p>
+                <button id="modal-close" class="cursor-pointer z-50 p-2 -mr-2">
+                    <svg class="fill-current text-gray-500 hover:text-gray-800" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 18 18"><path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"/></svg>
                 </button>
+            </div>
+            <div class="mt-4 max-h-[70vh] overflow-y-auto">
+                <form id="data-form" class="space-y-4"></form>
             </div>
         </div>
     </div>
-
-    <!-- Data Editor Panel -->
-    <div id="dataEditor" class="hidden no-print bg-gray-50 p-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">📝 Ingreso de Datos Microbiológicos</h2>
-                    <p class="text-gray-600">Introduce los resultados de análisis por mes y sección</p>
-                </div>
-                <div class="space-x-3">
-                    <button onclick="saveAllData()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium">
-                        ✅ Guardar y Actualizar
-                    </button>
-                    <button onclick="resetData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
-                        🔄 Restaurar Datos
-                    </button>
-                    <button onclick="toggleJSONView()" id="jsonToggle" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium">
-                        📄 Ver JSON
-                    </button>
-                </div>
-            </div>
-
-            <!-- Navegación de secciones del editor -->
-            <div class="bg-white rounded-lg shadow-md mb-6">
-                <div class="flex space-x-1 p-4 overflow-x-auto">
-                    <button onclick="showEditorSection('producto')" id="editor-tab-producto" class="editor-tab-active px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                        🏭 Producto en Proceso
-                    </button>
-                    <button onclick="showEditorSection('inertes')" id="editor-tab-inertes" class="editor-tab-inactive px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                        🧽 Superficies Inertes
-                    </button>
-                    <button onclick="showEditorSection('vivas')" id="editor-tab-vivas" class="editor-tab-inactive px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                        👐 Superficies Vivas
-                    </button>
-                    <button onclick="showEditorSection('ambiental')" id="editor-tab-ambiental" class="editor-tab-inactive px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                        🌡️ Ambiental
-                    </button>
-                    <button onclick="showEditorSection('acciones')" id="editor-tab-acciones" class="editor-tab-inactive px-4 py-2 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                        ⚠️ Plan de Acción
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sección Producto en Proceso -->
-            <div id="editor-content-producto" class="editor-section">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">🏭 Producto en Proceso</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="productoForm">
-                        <!-- Contenido generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección Superficies Inertes -->
-            <div id="editor-content-inertes" class="editor-section hidden">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">🧽 Superficies Inertes</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="inertesForm">
-                        <!-- Contenido generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección Superficies Vivas -->
-            <div id="editor-content-vivas" class="editor-section hidden">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">👐 Superficies Vivas</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="vivasForm">
-                        <!-- Contenido generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección Ambiental -->
-            <div id="editor-content-ambiental" class="editor-section hidden">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">🌡️ Ambiental</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ambientalForm">
-                        <!-- Contenido generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sección Plan de Acción -->
-            <div id="editor-content-acciones" class="editor-section hidden">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">⚠️ Plan de Acción</h3>
-                        <button onclick="addNewAction()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
-                            ➕ Nueva Acción
-                        </button>
-                    </div>
-                    <div id="accionesForm">
-                        <!-- Contenido generado dinámicamente -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Vista JSON (oculta por defecto) -->
-            <div id="jsonView" class="hidden bg-gray-800 text-white p-6 rounded-lg">
-                <h3 class="text-lg font-bold mb-4">📄 Vista JSON (Avanzado)</h3>
-                <textarea id="jsonData" class="json-editor w-full h-96 p-4 rounded-lg resize-none" placeholder="Datos JSON aquí..."></textarea>
-                <p class="text-gray-300 text-sm mt-2">💡 Solo para usuarios avanzados. Los cambios aquí sobrescribirán los formularios.</p>
-            </div>
+    
+    <!-- PDF Loading Modal -->
+    <div id="loading-modal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl flex items-center gap-4">
+            <div class="loader"></div>
+            <span class="text-lg font-medium text-gray-700">Generando PDF, por favor espere...</span>
         </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="bg-white shadow-md sticky top-0 z-10 no-print">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="flex space-x-1 overflow-x-auto py-4">
-                <button onclick="showTab('resumen')" id="tab-resumen" class="tab-active px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    📊 Resumen General
-                </button>
-                <button onclick="showTab('producto')" id="tab-producto" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    🏭 Producto en Proceso
-                </button>
-                <button onclick="showTab('inertes')" id="tab-inertes" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    🧽 Superficies Inertes
-                </button>
-                <button onclick="showTab('vivas')" id="tab-vivas" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    👐 Superficies Vivas
-                </button>
-                <button onclick="showTab('ambiental')" id="tab-ambiental" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    🌡️ Ambiental
-                </button>
-                <button onclick="showTab('acciones')" id="tab-acciones" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap">
-                    ⚠️ Plan de Acción
-                </button>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto p-6" id="mainContent">
-        <!-- Resumen General Tab -->
-        <div id="content-resumen" class="tab-content">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Resumen General - Año 2025</h2>
-                <p class="text-gray-600">Estado general del cumplimiento microbiológico</p>
-            </div>
-            
-            <!-- Indicadores Generales -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div id="cumplimiento-general" class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="text-green-600 text-2xl mr-3">✅</div>
-                        <div>
-                            <p class="text-sm text-green-600 font-medium">Cumplimiento General</p>
-                            <p class="text-2xl font-bold text-green-700" id="cumplimiento-porcentaje">--</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="text-blue-600 text-2xl mr-3">📊</div>
-                        <div>
-                            <p class="text-sm text-blue-600 font-medium">Muestras Analizadas</p>
-                            <p class="text-2xl font-bold text-blue-700" id="total-muestras">--</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="text-yellow-600 text-2xl mr-3">⚠️</div>
-                        <div>
-                            <p class="text-sm text-yellow-600 font-medium">No Conformidades</p>
-                            <p class="text-2xl font-bold text-yellow-700" id="no-conformidades">--</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="text-purple-600 text-2xl mr-3">📋</div>
-                        <div>
-                            <p class="text-sm text-purple-600 font-medium">Acciones Correctivas</p>
-                            <p class="text-2xl font-bold text-purple-700" id="acciones-correctivas">--</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            <!-- Gráficos de Resumen -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">📈 Tendencia de Cumplimiento Mensual</h3>
-                    <canvas id="cumplimientoMensual" width="400" height="300"></canvas>
-                </div>
-                
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🎯 Cumplimiento por Área</h3>
-                    <canvas id="cumplimientoArea" width="400" height="300"></canvas>
-                </div>
-            </div>
-        </div>
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyD5AzipPkLYYl01Zfb4ydIdvsXhL01Orso",
+          authDomain: "dashboard-tif-planta.firebaseapp.com",
+          projectId: "dashboard-tif-planta",
+          storageBucket: "dashboard-tif-planta.firebasestorage.app",
+          messagingSenderId: "397966044077",
+          appId: "1:397966044077:web:7ec49057199039f4eb0f24"
+        };
+        const appId = "dashboard-tif-planta"; // Using projectId as a unique identifier for the app instance.
+        
+        let app, auth, db, userId;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Error inicializando Firebase:", e);
+            document.getElementById('tab-content').innerHTML = `<div class="text-center py-10 text-red-600">Error de configuración de Firebase. La aplicación no puede cargar.</div>`;
+        }
 
-        <!-- Producto en Proceso Tab -->
-        <div id="content-producto" class="tab-content hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Producto en Proceso</h2>
-                <p class="text-gray-600">Análisis microbiológico del producto durante el proceso</p>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">📊 Mesófilos Aerobios (Límite: 10,000 UFC/g)</h3>
-                    <canvas id="productoMesofilos" width="400" height="300"></canvas>
-                </div>
-                
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🦠 Coliformes Totales (Límite: 500 UFC/g)</h3>
-                    <canvas id="productoColiformes" width="400" height="300"></canvas>
-                </div>
-            </div>
+        let dbData = { proceso: [], inertes: [], vivas: [], ambiental: [], plan: [] };
 
-            <div class="chart-container p-6 rounded-xl shadow-lg">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">⚠️ E. coli (Límite: 500 UFC/g)</h3>
-                <canvas id="productoEcoli" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Superficies Inertes Tab -->
-        <div id="content-inertes" class="tab-content hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Superficies Inertes</h2>
-                <p class="text-gray-600">Control microbiológico de superficies de contacto</p>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🧽 Mesófilos Aerobios (Límite: 400 UFC/cm²)</h3>
-                    <canvas id="inertesMesofilos" width="400" height="300"></canvas>
-                </div>
-                
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🦠 Coliformes Totales (Límite: 200 UFC/cm²)</h3>
-                    <canvas id="inertesColiformes" width="400" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Superficies Vivas Tab -->
-        <div id="content-vivas" class="tab-content hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Superficies Vivas (Manos)</h2>
-                <p class="text-gray-600">Control de higiene del personal manipulador</p>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">👐 Mesófilos Aerobios (Límite: 3,000 UFC/cm²)</h3>
-                    <canvas id="vivasMesofilos" width="400" height="300"></canvas>
-                </div>
-                
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🦠 Coliformes Totales (Límite: 10 UFC/cm²)</h3>
-                    <canvas id="vivasColiformes" width="400" height="300"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container p-6 rounded-xl shadow-lg">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">⚠️ S. Aureus (Límite: 0 UFC/cm²)</h3>
-                <canvas id="vivasAureus" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Ambiental Tab -->
-        <div id="content-ambiental" class="tab-content hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Análisis Ambiental</h2>
-                <p class="text-gray-600">Monitoreo de la calidad microbiológica del ambiente</p>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🌡️ Mesófilos Aerobios (Límite: 200 UFC/cm³)</h3>
-                    <canvas id="ambientalMesofilos" width="400" height="300"></canvas>
-                </div>
-                
-                <div class="chart-container p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">🍄 Mohos (Límite: 100 UFC/cm³)</h3>
-                    <canvas id="ambientalMohos" width="400" height="300"></canvas>
-                </div>
-            </div>
-
-            <div class="chart-container p-6 rounded-xl shadow-lg">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">⚠️ Listeria (Límite: 0 UFC/cm³)</h3>
-                <canvas id="ambientalListeria" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Plan de Acción Tab -->
-        <div id="content-acciones" class="tab-content hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Plan de Acción</h2>
-                <p class="text-gray-600">Seguimiento de no conformidades y acciones correctivas</p>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200" id="accionesTable">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Muestreo</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resultado</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acción Correctiva</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="accionesTableBody">
-                            <!-- Contenido dinámico -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Información de Almacenamiento -->
-    <div class="max-w-7xl mx-auto p-6 no-print">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-blue-800 mb-4">💾 ¿Dónde se almacenan mis datos?</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div class="bg-white p-4 rounded-lg border border-blue-100">
-                    <h4 class="font-semibold text-blue-700 mb-2">🖥️ Almacenamiento Local</h4>
-                    <p class="text-gray-600">Tus datos se guardan automáticamente en tu navegador (localStorage). Son privados y solo tú puedes acceder a ellos.</p>
-                </div>
-                
-                <div class="bg-white p-4 rounded-lg border border-blue-100">
-                    <h4 class="font-semibold text-blue-700 mb-2">🔗 Datos Compartidos</h4>
-                    <p class="text-gray-600">Cuando compartes datos, se genera un código único. Los datos compartidos se almacenan localmente y se sincronizan automáticamente.</p>
-                </div>
-                
-                <div class="bg-white p-4 rounded-lg border border-blue-100">
-                    <h4 class="font-semibold text-blue-700 mb-2">🔒 Seguridad</h4>
-                    <p class="text-gray-600">No enviamos datos a servidores externos. Todo permanece en tu dispositivo hasta que decidas compartir.</p>
-                </div>
-            </div>
-            
-            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p class="text-sm text-yellow-800">
-                    <strong>⚠️ Importante:</strong> Si borras los datos del navegador o cambias de dispositivo, perderás los datos locales. 
-                    Usa la función "Compartir Datos" para crear respaldos accesibles desde cualquier dispositivo.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white p-6 mt-12 no-print">
-        <div class="max-w-7xl mx-auto text-center">
-            <p class="text-gray-300">Dashboard Microbiológico 2025 - Sistema de Control de Calidad</p>
-            <p class="text-sm text-gray-400 mt-2">Última actualización: <span id="lastUpdate"></span></p>
-        </div>
-    </footer>
-
-    <script>
-        // Configuración global de Chart.js
-        Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
-        Chart.defaults.color = '#374151';
-
-        let googleDriveConnected = false;
-        let sharedDataCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
-
-        // Datos por defecto
-        const defaultData = {
-            "productoEnProceso": {
-                "meses": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-                "mesofilosAerobios": {
-                    "limite": 10000,
-                    "resultados": [8500, 7200, 9100, 6800, 7500, 8200, 7800, 8900, 7100, 8400, 7600, 8000]
-                },
-                "coliformesTotales": {
-                    "limite": 500,
-                    "resultados": [320, 280, 410, 350, 290, 380, 340, 420, 310, 360, 330, 370]
-                },
-                "eColi": {
-                    "limite": 500,
-                    "resultados": [45, 38, 52, 41, 35, 48, 42, 55, 39, 46, 40, 44]
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('user-info').textContent = `Conectado como: ${userId}`;
+                setupFirestoreListeners();
+            } else {
+                 try {
+                    // Sign in anonymously if no other user is present.
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Error de autenticación:", error);
+                    let errorMessage = "Error de autenticación. No se pueden cargar los datos.";
+                    if (error.code === 'auth/configuration-not-found') {
+                        errorMessage += "<br><br><b class='font-semibold'>Posible solución:</b> Asegúrate de haber habilitado el proveedor de 'Inicio de sesión anónimo' en la configuración de Autenticación de tu proyecto de Firebase. Ve a tu Consola de Firebase -> Authentication -> Sign-in method y habilita 'Anónimo'.";
+                    }
+                    document.getElementById('tab-content').innerHTML = `<div class="text-center p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">${errorMessage}</div>`;
                 }
-            },
-            "superficiesInertes": {
-                "meses": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-                "mesofilosAerobios": {
-                    "limite": 400,
-                    "resultado1": [320, 280, 350, 310, 290, 330, 300, 340, 285, 315, 295, 325],
-                    "resultado2": [310, 275, 345, 305, 285, 325, 295, 335, 280, 310, 290, 320],
-                    "resultado3": [315, 285, 355, 315, 295, 335, 305, 345, 290, 320, 300, 330],
-                    "resultado4": [305, 270, 340, 300, 280, 320, 290, 330, 275, 305, 285, 315]
-                },
-                "coliformesTotales": {
-                    "limite": 200,
-                    "resultado1": [150, 130, 170, 140, 125, 160, 145, 175, 135, 155, 140, 165],
-                    "resultado2": [145, 125, 165, 135, 120, 155, 140, 170, 130, 150, 135, 160],
-                    "resultado3": [155, 135, 175, 145, 130, 165, 150, 180, 140, 160, 145, 170],
-                    "resultado4": [140, 120, 160, 130, 115, 150, 135, 165, 125, 145, 130, 155]
-                }
-            },
-            "superficiesVivas": {
-                "meses": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-                "mesofilosAerobios": {
-                    "limite": 3000,
-                    "manosEnProceso": [2800, 2600, 2900, 2700, 2500, 2750, 2650, 2850, 2550, 2700, 2600, 2750],
-                    "manosLavadas": [180, 150, 200, 170, 140, 190, 160, 210, 155, 185, 165, 195]
-                },
-                "coliformesTotales": {
-                    "limite": 10,
-                    "manosEnProceso": [8, 6, 9, 7, 5, 8, 6, 9, 5, 7, 6, 8],
-                    "manosLavadas": [2, 1, 3, 2, 1, 2, 1, 3, 1, 2, 1, 2]
-                },
-                "sAureus": {
-                    "limite": 0,
-                    "manosEnProceso": [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                    "manosLavadas": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                }
-            },
-            "ambiental": {
-                "meses": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-                "mesofilosAerobios": {
-                    "limite": 200,
-                    "resultados": [180, 160, 190, 170, 150, 185, 165, 195, 155, 175, 160, 180]
-                },
-                "mohos": {
-                    "limite": 100,
-                    "resultados": [85, 75, 90, 80, 70, 88, 78, 92, 72, 82, 76, 85]
-                },
-                "listeria": {
-                    "limite": 0,
-                    "resultados": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                }
-            },
-            "planAccion": [
-                {
-                    "fecha": "2025-03-15",
-                    "muestreo": "SV",
-                    "resultado": "S. Aureus: 1 UFC/cm² (Límite: 0)",
-                    "accionCorrectiva": "Reforzar capacitación en lavado de manos",
-                    "responsable": "Supervisor de Calidad",
-                    "fechaCierre": "2025-03-20",
-                    "estado": "Cerrada"
-                },
-                {
-                    "fecha": "2025-08-10",
-                    "muestreo": "SV",
-                    "resultado": "S. Aureus: 1 UFC/cm² (Límite: 0)",
-                    "accionCorrectiva": "Revisión del protocolo de desinfección",
-                    "responsable": "Jefe de Producción",
-                    "fechaCierre": "2025-08-15",
-                    "estado": "Cerrada"
-                }
-            ]
+            }
+        });
+        
+        // --- CONFIGURACIÓN DE LÍMITES Y PARÁMETROS ---
+        const config = {
+            proceso: { title: 'Producto en Proceso', limits: { mesofilos: 10000, coliformes: 500, ecoli: 500 }, unit: 'UFC/g' },
+            inertes: { title: 'Superficies Inertes', limits: { mesofilos: 400, coliformes: 200 }, unit: 'UFC/cm²' },
+            vivas: { title: 'Superficies Vivas', limits: { mesofilos: 3000, coliformes: 10, saureus: 0 }, unit: 'UFC/cm²' },
+            ambiental: { title: 'Ambiental', limits: { mesofilos: 200, mohos: 100, listeria: 0 }, unit: 'UFC/cm³' },
+            plan: { title: 'Plan de Acción' }
         };
 
-        let currentData = JSON.parse(JSON.stringify(defaultData));
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        let activeTab = 'proceso';
         let charts = {};
 
-        // Funciones de Google Drive
-        async function connectGoogleDrive() {
-            const button = document.getElementById('driveButton');
-            
-            if (!googleDriveConnected) {
-                button.textContent = '⏳ Conectando...';
-                
-                setTimeout(() => {
-                    googleDriveConnected = true;
-                    button.textContent = '✅ Google Drive Conectado';
-                    button.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    button.classList.add('bg-green-500');
-                    
-                    document.getElementById('shareButton').classList.remove('hidden');
-                    
-                    alert('✅ Google Drive conectado exitosamente!\n\nAhora puedes compartir tus datos usando el botón "Compartir Datos".');
-                }, 2000);
-            } else {
-                alert('✅ Google Drive ya está conectado. Usa el botón "Compartir Datos" para generar enlaces.');
-            }
-        }
-
-        function shareData() {
-            if (!googleDriveConnected) {
-                alert('❌ Primero debes conectar Google Drive');
-                return;
-            }
-            
-            // Recopilar todos los datos actuales del formulario
-            collectFormData();
-            
-            // Generar código único
-            const shareCode = generateShareCode();
-            
-            // Guardar datos actualizados con el código
-            sharedDataCodes[shareCode] = {
-                data: JSON.parse(JSON.stringify(currentData)),
-                timestamp: new Date().toISOString(),
-                lastUpdate: new Date().toLocaleString('es-ES')
-            };
-            
-            // Guardar en localStorage
-            localStorage.setItem('sharedDataCodes', JSON.stringify(sharedDataCodes));
-            
-            // También guardar los datos actuales como datos principales
-            localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
-            
-            const currentURL = window.location.href.split('?')[0];
-            const shareURL = `${currentURL}?codigo=${shareCode}`;
-            
-            document.getElementById('shareCode').textContent = shareCode;
-            document.getElementById('shareURL').value = shareURL;
-            document.getElementById('shareModal').classList.remove('hidden');
-            
-            console.log('✅ Datos compartidos actualizados:', shareCode);
-        }
-
-        function generateShareCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        function copyShareURL() {
-            const urlInput = document.getElementById('shareURL');
-            urlInput.select();
-            urlInput.setSelectionRange(0, 99999);
-            
-            try {
-                document.execCommand('copy');
-                alert('✅ URL copiada al portapapeles');
-            } catch (err) {
-                alert('❌ No se pudo copiar automáticamente. Copia manualmente la URL.');
-            }
-        }
-
-        function closeShareModal() {
-            document.getElementById('shareModal').classList.add('hidden');
-        }
-
-        function loadSharedData() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const shareCode = urlParams.get('codigo');
-            
-            if (shareCode) {
-                // Cargar códigos compartidos desde localStorage
-                const storedCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
-                const sharedData = storedCodes[shareCode];
-                
-                if (sharedData) {
-                    currentData = JSON.parse(JSON.stringify(sharedData.data));
-                    
-                    const infoDiv = document.getElementById('sharedDataInfo');
-                    infoDiv.classList.remove('hidden');
-                    infoDiv.innerHTML = `
-                        <span class="text-green-100 text-sm">
-                            📡 Datos compartidos cargados exitosamente (Código: ${shareCode})
-                            <br>Última actualización: ${sharedData.lastUpdate}
-                        </span>
-                    `;
-                    
-                    console.log('✅ Datos compartidos cargados:', shareCode);
-                    return true;
-                } else {
-                    // Mostrar mensaje más claro
-                    const infoDiv = document.getElementById('sharedDataInfo');
-                    infoDiv.classList.remove('hidden');
-                    infoDiv.innerHTML = `
-                        <span class="text-red-100 text-sm">
-                            ❌ Código de acceso "${shareCode}" no encontrado o expirado
-                            <br>Contacta al propietario para obtener un código válido
-                        </span>
-                    `;
-                    infoDiv.className = 'mt-2 bg-red-500 bg-opacity-20 px-3 py-1 rounded-lg';
-                    return false;
-                }
-            }
-            return false;
-        }
-
-        // Funciones de navegación
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            
-            document.querySelectorAll('nav button').forEach(tab => {
-                tab.classList.remove('tab-active');
-                tab.classList.add('bg-gray-100', 'hover:bg-gray-200');
-            });
-            
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            
-            const activeTab = document.getElementById(`tab-${tabName}`);
-            activeTab.classList.add('tab-active');
-            activeTab.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-            
-            setTimeout(() => initializeCharts(tabName), 100);
-        }
-
-        function toggleDataEditor() {
-            const editor = document.getElementById('dataEditor');
-            const toggle = document.getElementById('editorToggle');
-            
-            if (editor.classList.contains('hidden')) {
-                editor.classList.remove('hidden');
-                toggle.textContent = '❌ Cerrar Editor';
-                document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
-                initializeEditorForms();
-                showEditorSection('producto');
-            } else {
-                editor.classList.add('hidden');
-                toggle.textContent = '⚙️ Editor de Datos';
-            }
-        }
-
-        function showEditorSection(section) {
-            document.querySelectorAll('.editor-section').forEach(sec => {
-                sec.classList.add('hidden');
-            });
-            
-            document.querySelectorAll('[id^="editor-tab-"]').forEach(tab => {
-                tab.classList.remove('editor-tab-active');
-                tab.classList.add('editor-tab-inactive');
-            });
-            
-            document.getElementById(`editor-content-${section}`).classList.remove('hidden');
-            
-            const activeTab = document.getElementById(`editor-tab-${section}`);
-            activeTab.classList.add('editor-tab-active');
-            activeTab.classList.remove('editor-tab-inactive');
-        }
-
-        function toggleJSONView() {
-            const jsonView = document.getElementById('jsonView');
-            const toggle = document.getElementById('jsonToggle');
-            
-            if (jsonView.classList.contains('hidden')) {
-                jsonView.classList.remove('hidden');
-                toggle.textContent = '📋 Ver Formularios';
-                document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
-            } else {
-                jsonView.classList.add('hidden');
-                toggle.textContent = '📄 Ver JSON';
-            }
-        }
-
-        function saveAllData() {
-            try {
-                collectFormData();
-                
-                localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
-                
-                // Actualizar TODOS los códigos compartidos existentes con los nuevos datos
-                updateAllSharedCodes();
-                
-                Object.values(charts).forEach(chart => {
-                    if (chart) chart.destroy();
+        function setupFirestoreListeners() {
+            Object.keys(dbData).forEach(collectionName => {
+                const collRef = collection(db, `/artifacts/${appId}/public/data/${collectionName}`);
+                onSnapshot(collRef, (snapshot) => {
+                    const dataList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Para ordenar el plan de acción por fecha de creación
+                    if (collectionName === 'plan') {
+                        dataList.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+                    }
+                    dbData[collectionName] = dataList;
+                    // Solo renderiza si la pestaña activa corresponde a los datos que cambiaron
+                    if(collectionName === activeTab || activeTab === 'plan'){
+                         renderContent(activeTab);
+                    }
+                }, (error) => {
+                    console.error(`Error al escuchar la colección ${collectionName}:`, error);
                 });
-                charts = {};
-                
-                updateResumenGeneral();
-                
-                if (!document.getElementById('jsonView').classList.contains('hidden')) {
-                    document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
-                }
-                
-                const now = new Date().toLocaleString('es-ES');
-                localStorage.setItem('lastUpdate', now);
-                document.getElementById('lastUpdate').textContent = now;
-                
-                alert('✅ Datos guardados y sincronizados con todos los enlaces compartidos');
-            } catch (error) {
-                alert('❌ Error al guardar los datos: ' + error.message);
-            }
-        }
-
-        function loadSavedData() {
-            try {
-                const savedData = localStorage.getItem('microbiologicalData');
-                const savedUpdate = localStorage.getItem('lastUpdate');
-                
-                if (savedData) {
-                    currentData = JSON.parse(savedData);
-                    console.log('✅ Datos cargados desde almacenamiento local');
-                }
-                
-                if (savedUpdate) {
-                    document.getElementById('lastUpdate').textContent = savedUpdate;
-                }
-            } catch (error) {
-                console.log('⚠️ No se pudieron cargar datos guardados, usando datos por defecto');
-                currentData = JSON.parse(JSON.stringify(defaultData));
-            }
-        }
-
-        function autoSaveData() {
-            try {
-                collectFormData();
-                localStorage.setItem('microbiologicalData', JSON.stringify(currentData));
-                
-                // Sincronizar automáticamente con códigos compartidos
-                updateAllSharedCodes();
-                
-                const now = new Date().toLocaleString('es-ES');
-                localStorage.setItem('lastUpdate', now);
-                document.getElementById('lastUpdate').textContent = now;
-                
-                console.log('💾 Datos guardados y sincronizados automáticamente');
-            } catch (error) {
-                console.log('❌ Error en auto-guardado:', error.message);
-            }
-        }
-
-        function updateAllSharedCodes() {
-            try {
-                // Obtener todos los códigos compartidos existentes
-                const storedCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
-                
-                // Actualizar cada código con los datos actuales
-                Object.keys(storedCodes).forEach(code => {
-                    storedCodes[code].data = JSON.parse(JSON.stringify(currentData));
-                    storedCodes[code].lastUpdate = new Date().toLocaleString('es-ES');
-                    storedCodes[code].timestamp = new Date().toISOString();
-                });
-                
-                // Guardar códigos actualizados
-                localStorage.setItem('sharedDataCodes', JSON.stringify(storedCodes));
-                sharedDataCodes = storedCodes;
-                
-                // Actualizar indicador de sincronización
-                updateSyncStatus();
-                
-                console.log('🔄 Códigos compartidos sincronizados:', Object.keys(storedCodes).length);
-            } catch (error) {
-                console.log('❌ Error sincronizando códigos compartidos:', error.message);
-            }
-        }
-
-        function updateSyncStatus() {
-            const activeCodesCount = Object.keys(sharedDataCodes).length;
-            const syncStatus = document.getElementById('syncStatus');
-            const syncCount = document.getElementById('syncCount');
-            
-            if (activeCodesCount > 0) {
-                syncStatus.classList.remove('hidden');
-                syncCount.textContent = activeCodesCount;
-            } else {
-                syncStatus.classList.add('hidden');
-            }
-        }
-
-        function getActiveSharedCodes() {
-            const codes = Object.keys(sharedDataCodes);
-            return codes.length;
-        }
-
-        function collectFormData() {
-            const meses = currentData.productoEnProceso.meses;
-            
-            // Producto en Proceso
-            meses.forEach((mes, index) => {
-                const mesofilosValue = document.getElementById(`producto-mesofilos-${index}`)?.value;
-                const coliformesValue = document.getElementById(`producto-coliformes-${index}`)?.value;
-                const ecoliValue = document.getElementById(`producto-ecoli-${index}`)?.value;
-                
-                if (mesofilosValue !== undefined) currentData.productoEnProceso.mesofilosAerobios.resultados[index] = parseFloat(mesofilosValue) || 0;
-                if (coliformesValue !== undefined) currentData.productoEnProceso.coliformesTotales.resultados[index] = parseFloat(coliformesValue) || 0;
-                if (ecoliValue !== undefined) currentData.productoEnProceso.eColi.resultados[index] = parseFloat(ecoliValue) || 0;
             });
-
-            // Superficies Inertes
-            meses.forEach((mes, index) => {
-                for (let i = 1; i <= 4; i++) {
-                    const mesofilosValue = document.getElementById(`inertes-mesofilos-${i}-${index}`)?.value;
-                    const coliformesValue = document.getElementById(`inertes-coliformes-${i}-${index}`)?.value;
-                    
-                    if (mesofilosValue !== undefined) currentData.superficiesInertes.mesofilosAerobios[`resultado${i}`][index] = parseFloat(mesofilosValue) || 0;
-                    if (coliformesValue !== undefined) currentData.superficiesInertes.coliformesTotales[`resultado${i}`][index] = parseFloat(coliformesValue) || 0;
-                }
-            });
-
-            // Superficies Vivas
-            meses.forEach((mes, index) => {
-                const mesofilosProceso = document.getElementById(`vivas-mesofilos-proceso-${index}`)?.value;
-                const mesofilosLavadas = document.getElementById(`vivas-mesofilos-lavadas-${index}`)?.value;
-                const coliformesProceso = document.getElementById(`vivas-coliformes-proceso-${index}`)?.value;
-                const coliformesLavadas = document.getElementById(`vivas-coliformes-lavadas-${index}`)?.value;
-                const aureusProceso = document.getElementById(`vivas-aureus-proceso-${index}`)?.value;
-                const aureusLavadas = document.getElementById(`vivas-aureus-lavadas-${index}`)?.value;
-                
-                if (mesofilosProceso !== undefined) currentData.superficiesVivas.mesofilosAerobios.manosEnProceso[index] = parseFloat(mesofilosProceso) || 0;
-                if (mesofilosLavadas !== undefined) currentData.superficiesVivas.mesofilosAerobios.manosLavadas[index] = parseFloat(mesofilosLavadas) || 0;
-                if (coliformesProceso !== undefined) currentData.superficiesVivas.coliformesTotales.manosEnProceso[index] = parseFloat(coliformesProceso) || 0;
-                if (coliformesLavadas !== undefined) currentData.superficiesVivas.coliformesTotales.manosLavadas[index] = parseFloat(coliformesLavadas) || 0;
-                if (aureusProceso !== undefined) currentData.superficiesVivas.sAureus.manosEnProceso[index] = parseFloat(aureusProceso) || 0;
-                if (aureusLavadas !== undefined) currentData.superficiesVivas.sAureus.manosLavadas[index] = parseFloat(aureusLavadas) || 0;
-            });
-
-            // Ambiental
-            meses.forEach((mes, index) => {
-                const mesofilosValue = document.getElementById(`ambiental-mesofilos-${index}`)?.value;
-                const mohosValue = document.getElementById(`ambiental-mohos-${index}`)?.value;
-                const listeriaValue = document.getElementById(`ambiental-listeria-${index}`)?.value;
-                
-                if (mesofilosValue !== undefined) currentData.ambiental.mesofilosAerobios.resultados[index] = parseFloat(mesofilosValue) || 0;
-                if (mohosValue !== undefined) currentData.ambiental.mohos.resultados[index] = parseFloat(mohosValue) || 0;
-                if (listeriaValue !== undefined) currentData.ambiental.listeria.resultados[index] = parseFloat(listeriaValue) || 0;
-            });
-
-            collectActionData();
+            // Render inicial después de configurar los listeners
+            setTimeout(() => renderContent(activeTab), 1000);
         }
 
-        function resetData() {
-            if (confirm('¿Estás seguro de que quieres restaurar los datos por defecto?')) {
-                currentData = JSON.parse(JSON.stringify(defaultData));
-                document.getElementById('jsonData').value = JSON.stringify(currentData, null, 2);
-                updateCharts();
-            }
-        }
-
-        function checkCompliance(value, limit) {
-            return value <= limit;
-        }
-
-        function updateResumenGeneral() {
-            let totalMuestras = 0;
-            let noConformidades = 0;
-            let cumplimientos = 0;
-
-            const areas = ['productoEnProceso', 'superficiesInertes', 'superficiesVivas', 'ambiental'];
-            
-            areas.forEach(area => {
-                const areaData = currentData[area];
-                if (areaData && areaData.meses) {
-                    Object.keys(areaData).forEach(key => {
-                        if (key !== 'meses' && typeof areaData[key] === 'object' && areaData[key].limite !== undefined) {
-                            const parametro = areaData[key];
-                            
-                            Object.keys(parametro).forEach(subKey => {
-                                if (subKey !== 'limite' && Array.isArray(parametro[subKey])) {
-                                    totalMuestras += parametro[subKey].length;
-                                    parametro[subKey].forEach(valor => {
-                                        if (checkCompliance(valor, parametro.limite)) {
-                                            cumplimientos++;
-                                        } else {
-                                            noConformidades++;
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
+        // --- MANEJO DE TABS ---
+        const tabs = document.querySelectorAll('.tab-button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                activeTab = tab.dataset.tab;
+                document.getElementById('add-record-btn').style.display = (activeTab === 'plan') ? 'none' : 'flex';
+                renderContent(activeTab);
             });
-
-            const cumplimientoGeneral = totalMuestras > 0 ? Math.round((cumplimientos / totalMuestras) * 100) : 0;
-            const accionesCorrectivas = currentData.planAccion ? currentData.planAccion.length : 0;
-
-            document.getElementById('cumplimiento-porcentaje').textContent = cumplimientoGeneral + '%';
-            document.getElementById('total-muestras').textContent = totalMuestras;
-            document.getElementById('no-conformidades').textContent = noConformidades;
-            document.getElementById('acciones-correctivas').textContent = accionesCorrectivas;
-        }
-
-        function initializeCharts(tabName) {
-            if (tabName === 'resumen') {
-                updateResumenGeneral();
-                createResumenCharts();
-            } else if (tabName === 'producto') {
-                createProductoCharts();
-            } else if (tabName === 'inertes') {
-                createInertesCharts();
-            } else if (tabName === 'vivas') {
-                createVivasCharts();
-            } else if (tabName === 'ambiental') {
-                createAmbientalCharts();
-            } else if (tabName === 'acciones') {
-                updateAccionesTable();
-            }
-        }
-
-        function createResumenCharts() {
-            const ctxMensual = document.getElementById('cumplimientoMensual').getContext('2d');
-            if (charts.cumplimientoMensual) charts.cumplimientoMensual.destroy();
-            
-            charts.cumplimientoMensual = new Chart(ctxMensual, {
-                type: 'line',
-                data: {
-                    labels: currentData.productoEnProceso.meses,
-                    datasets: [{
-                        label: 'Cumplimiento (%)',
-                        data: [95, 92, 88, 94, 96, 93, 91, 89, 97, 94, 95, 93],
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje de Cumplimiento'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxArea = document.getElementById('cumplimientoArea').getContext('2d');
-            if (charts.cumplimientoArea) charts.cumplimientoArea.destroy();
-            
-            charts.cumplimientoArea = new Chart(ctxArea, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Producto en Proceso', 'Superficies Inertes', 'Superficies Vivas', 'Ambiental'],
-                    datasets: [{
-                        data: [93, 95, 91, 97],
-                        backgroundColor: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        }
-                    }
-                }
-            });
-        }
-
-        function createProductoCharts() {
-            const data = currentData.productoEnProceso;
-            
-            const ctxMesofilos = document.getElementById('productoMesofilos').getContext('2d');
-            if (charts.productoMesofilos) charts.productoMesofilos.destroy();
-            
-            charts.productoMesofilos = new Chart(ctxMesofilos, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.mesofilosAerobios.resultados,
-                        backgroundColor: data.mesofilosAerobios.resultados.map(val => 
-                            checkCompliance(val, data.mesofilosAerobios.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.mesofilosAerobios.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/g'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxColiformes = document.getElementById('productoColiformes').getContext('2d');
-            if (charts.productoColiformes) charts.productoColiformes.destroy();
-            
-            charts.productoColiformes = new Chart(ctxColiformes, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.coliformesTotales.resultados,
-                        backgroundColor: data.coliformesTotales.resultados.map(val => 
-                            checkCompliance(val, data.coliformesTotales.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.coliformesTotales.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/g'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxEcoli = document.getElementById('productoEcoli').getContext('2d');
-            if (charts.productoEcoli) charts.productoEcoli.destroy();
-            
-            charts.productoEcoli = new Chart(ctxEcoli, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.eColi.resultados,
-                        backgroundColor: data.eColi.resultados.map(val => 
-                            checkCompliance(val, data.eColi.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.eColi.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/g'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createInertesCharts() {
-            const data = currentData.superficiesInertes;
-            
-            const ctxMesofilos = document.getElementById('inertesMesofilos').getContext('2d');
-            if (charts.inertesMesofilos) charts.inertesMesofilos.destroy();
-            
-            charts.inertesMesofilos = new Chart(ctxMesofilos, {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultado 1',
-                        data: data.mesofilosAerobios.resultado1,
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                    }, {
-                        label: 'Resultado 2',
-                        data: data.mesofilosAerobios.resultado2,
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)'
-                    }, {
-                        label: 'Resultado 3',
-                        data: data.mesofilosAerobios.resultado3,
-                        borderColor: '#F59E0B',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)'
-                    }, {
-                        label: 'Resultado 4',
-                        data: data.mesofilosAerobios.resultado4,
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)'
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.mesofilosAerobios.limite),
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm²'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxColiformes = document.getElementById('inertesColiformes').getContext('2d');
-            if (charts.inertesColiformes) charts.inertesColiformes.destroy();
-            
-            charts.inertesColiformes = new Chart(ctxColiformes, {
-                type: 'line',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultado 1',
-                        data: data.coliformesTotales.resultado1,
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                    }, {
-                        label: 'Resultado 2',
-                        data: data.coliformesTotales.resultado2,
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)'
-                    }, {
-                        label: 'Resultado 3',
-                        data: data.coliformesTotales.resultado3,
-                        borderColor: '#F59E0B',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)'
-                    }, {
-                        label: 'Resultado 4',
-                        data: data.coliformesTotales.resultado4,
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)'
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.coliformesTotales.limite),
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm²'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createVivasCharts() {
-            const data = currentData.superficiesVivas;
-            
-            const ctxMesofilos = document.getElementById('vivasMesofilos').getContext('2d');
-            if (charts.vivasMesofilos) charts.vivasMesofilos.destroy();
-            
-            charts.vivasMesofilos = new Chart(ctxMesofilos, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Manos en Proceso',
-                        data: data.mesofilosAerobios.manosEnProceso,
-                        backgroundColor: '#F59E0B'
-                    }, {
-                        label: 'Manos Lavadas',
-                        data: data.mesofilosAerobios.manosLavadas,
-                        backgroundColor: '#10B981'
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.mesofilosAerobios.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm²'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxColiformes = document.getElementById('vivasColiformes').getContext('2d');
-            if (charts.vivasColiformes) charts.vivasColiformes.destroy();
-            
-            charts.vivasColiformes = new Chart(ctxColiformes, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Manos en Proceso',
-                        data: data.coliformesTotales.manosEnProceso,
-                        backgroundColor: '#F59E0B'
-                    }, {
-                        label: 'Manos Lavadas',
-                        data: data.coliformesTotales.manosLavadas,
-                        backgroundColor: '#10B981'
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.coliformesTotales.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm²'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxAureus = document.getElementById('vivasAureus').getContext('2d');
-            if (charts.vivasAureus) charts.vivasAureus.destroy();
-            
-            charts.vivasAureus = new Chart(ctxAureus, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Manos en Proceso',
-                        data: data.sAureus.manosEnProceso,
-                        backgroundColor: data.sAureus.manosEnProceso.map(val => 
-                            checkCompliance(val, data.sAureus.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Manos Lavadas',
-                        data: data.sAureus.manosLavadas,
-                        backgroundColor: data.sAureus.manosLavadas.map(val => 
-                            checkCompliance(val, data.sAureus.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm²'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createAmbientalCharts() {
-            const data = currentData.ambiental;
-            
-            const ctxMesofilos = document.getElementById('ambientalMesofilos').getContext('2d');
-            if (charts.ambientalMesofilos) charts.ambientalMesofilos.destroy();
-            
-            charts.ambientalMesofilos = new Chart(ctxMesofilos, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.mesofilosAerobios.resultados,
-                        backgroundColor: data.mesofilosAerobios.resultados.map(val => 
-                            checkCompliance(val, data.mesofilosAerobios.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.mesofilosAerobios.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm³'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxMohos = document.getElementById('ambientalMohos').getContext('2d');
-            if (charts.ambientalMohos) charts.ambientalMohos.destroy();
-            
-            charts.ambientalMohos = new Chart(ctxMohos, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.mohos.resultados,
-                        backgroundColor: data.mohos.resultados.map(val => 
-                            checkCompliance(val, data.mohos.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }, {
-                        label: 'Límite',
-                        data: new Array(data.meses.length).fill(data.mohos.limite),
-                        type: 'line',
-                        borderColor: '#EF4444',
-                        borderDash: [5, 5],
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm³'
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxListeria = document.getElementById('ambientalListeria').getContext('2d');
-            if (charts.ambientalListeria) charts.ambientalListeria.destroy();
-            
-            charts.ambientalListeria = new Chart(ctxListeria, {
-                type: 'bar',
-                data: {
-                    labels: data.meses,
-                    datasets: [{
-                        label: 'Resultados',
-                        data: data.listeria.resultados,
-                        backgroundColor: data.listeria.resultados.map(val => 
-                            checkCompliance(val, data.listeria.limite) ? '#10B981' : '#EF4444'
-                        )
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'UFC/cm³'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateAccionesTable() {
-            const tbody = document.getElementById('accionesTableBody');
-            tbody.innerHTML = '';
-            
-            currentData.planAccion.forEach(accion => {
-                const row = document.createElement('tr');
-                const estadoClass = accion.estado === 'Cerrada' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${accion.fecha}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${accion.muestreo}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900">${accion.resultado}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900">${accion.accionCorrectiva}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${accion.responsable}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoClass}">
-                            ${accion.estado}
-                        </span>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function exportToPDF() {
-            try {
-                const originalText = document.querySelector('button[onclick="exportToPDF()"]').textContent;
-                document.querySelector('button[onclick="exportToPDF()"]').textContent = '⏳ Generando PDF...';
-                
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                let yPosition = 20;
-                
-                // Función para agregar encabezado
-                function addHeader() {
-                    pdf.setFontSize(16);
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text('Dashboard Microbiologico 2025', 20, yPosition);
-                    yPosition += 10;
-                    
-                    pdf.setFontSize(10);
-                    pdf.setTextColor(100, 100, 100);
-                    pdf.text(`Generado: ${new Date().toLocaleDateString('es-ES')} ${new Date().toLocaleTimeString('es-ES')}`, 20, yPosition);
-                    yPosition += 15;
-                }
-                
-                // Función para verificar espacio y agregar nueva página si es necesario
-                function checkPageSpace(neededSpace) {
-                    if (yPosition + neededSpace > 280) {
-                        pdf.addPage();
-                        yPosition = 20;
-                        addHeader();
-                    }
-                }
-                
-                addHeader();
-                
-                // RESUMEN GENERAL
-                pdf.setFontSize(14);
-                pdf.setTextColor(0, 0, 0);
-                pdf.text('RESUMEN GENERAL', 20, yPosition);
-                yPosition += 10;
-                
-                pdf.setFontSize(11);
-                const cumplimiento = document.getElementById('cumplimiento-porcentaje').textContent;
-                const totalMuestras = document.getElementById('total-muestras').textContent;
-                const noConformidades = document.getElementById('no-conformidades').textContent;
-                const acciones = document.getElementById('acciones-correctivas').textContent;
-                
-                pdf.text(`Cumplimiento General: ${cumplimiento}`, 20, yPosition);
-                yPosition += 7;
-                pdf.text(`Total de Muestras Analizadas: ${totalMuestras}`, 20, yPosition);
-                yPosition += 7;
-                pdf.text(`No Conformidades Detectadas: ${noConformidades}`, 20, yPosition);
-                yPosition += 7;
-                pdf.text(`Acciones Correctivas Implementadas: ${acciones}`, 20, yPosition);
-                yPosition += 15;
-                
-                // PRODUCTO EN PROCESO
-                checkPageSpace(50);
-                pdf.setFontSize(14);
-                pdf.text('PRODUCTO EN PROCESO', 20, yPosition);
-                yPosition += 10;
-                
-                pdf.setFontSize(10);
-                const productoData = currentData.productoEnProceso;
-                
-                // Tabla de datos de producto
-                pdf.text('Mes', 20, yPosition);
-                pdf.text('Mesofilos', 50, yPosition);
-                pdf.text('Coliformes', 80, yPosition);
-                pdf.text('E.coli', 110, yPosition);
-                yPosition += 7;
-                
-                productoData.meses.forEach((mes, index) => {
-                    checkPageSpace(7);
-                    pdf.text(mes.substring(0, 3), 20, yPosition);
-                    pdf.text(productoData.mesofilosAerobios.resultados[index].toString(), 50, yPosition);
-                    pdf.text(productoData.coliformesTotales.resultados[index].toString(), 80, yPosition);
-                    pdf.text(productoData.eColi.resultados[index].toString(), 110, yPosition);
-                    yPosition += 5;
-                });
-                
-                yPosition += 10;
-                
-                // SUPERFICIES INERTES
-                checkPageSpace(30);
-                pdf.setFontSize(14);
-                pdf.text('SUPERFICIES INERTES', 20, yPosition);
-                yPosition += 10;
-                
-                pdf.setFontSize(10);
-                pdf.text('Promedio mensual de resultados de superficies inertes', 20, yPosition);
-                yPosition += 7;
-                
-                const inertesData = currentData.superficiesInertes;
-                inertesData.meses.forEach((mes, index) => {
-                    checkPageSpace(5);
-                    const promedioMesofilos = Math.round((
-                        inertesData.mesofilosAerobios.resultado1[index] +
-                        inertesData.mesofilosAerobios.resultado2[index] +
-                        inertesData.mesofilosAerobios.resultado3[index] +
-                        inertesData.mesofilosAerobios.resultado4[index]
-                    ) / 4);
-                    
-                    pdf.text(`${mes}: Mesofilos promedio ${promedioMesofilos} UFC/cm²`, 20, yPosition);
-                    yPosition += 5;
-                });
-                
-                yPosition += 10;
-                
-                // PLAN DE ACCIÓN
-                if (currentData.planAccion && currentData.planAccion.length > 0) {
-                    checkPageSpace(30);
-                    pdf.setFontSize(14);
-                    pdf.text('PLAN DE ACCION', 20, yPosition);
-                    yPosition += 10;
-                    
-                    pdf.setFontSize(10);
-                    currentData.planAccion.forEach((accion, index) => {
-                        checkPageSpace(20);
-                        pdf.text(`Accion ${index + 1}:`, 20, yPosition);
-                        yPosition += 5;
-                        pdf.text(`Fecha: ${accion.fecha}`, 25, yPosition);
-                        yPosition += 5;
-                        pdf.text(`Tipo: ${accion.muestreo}`, 25, yPosition);
-                        yPosition += 5;
-                        pdf.text(`Estado: ${accion.estado}`, 25, yPosition);
-                        yPosition += 8;
-                    });
-                }
-                
-                // Información de almacenamiento
-                checkPageSpace(20);
-                pdf.setFontSize(12);
-                pdf.text('INFORMACION DE ALMACENAMIENTO', 20, yPosition);
-                yPosition += 8;
-                
-                pdf.setFontSize(10);
-                pdf.text('Los datos se almacenan localmente en tu navegador.', 20, yPosition);
-                yPosition += 5;
-                pdf.text('Para compartir datos, usa la funcion "Compartir Datos".', 20, yPosition);
-                yPosition += 5;
-                pdf.text('Los datos compartidos se mantienen sincronizados automaticamente.', 20, yPosition);
-                
-                pdf.save('Dashboard_Microbiologico_2025_Completo.pdf');
-                
-                document.querySelector('button[onclick="exportToPDF()"]').textContent = originalText;
-                
-                alert('✅ PDF generado exitosamente con datos legibles');
-                
-            } catch (error) {
-                document.querySelector('button[onclick="exportToPDF()"]').textContent = 'Exportar PDF';
-                alert('❌ Error al generar el PDF: ' + error.message);
-            }
-        }
-
-        function printFullReport() {
-            window.print();
-        }
-
-        function initializeEditorForms() {
-            generateProductoForm();
-            generateInertesForm();
-            generateVivasForm();
-            generateAmbientalForm();
-            generateAccionesForm();
-        }
-
-        function generateProductoForm() {
-            const container = document.getElementById('productoForm');
-            const data = currentData.productoEnProceso;
-            
-            container.innerHTML = '';
-            
-            data.meses.forEach((mes, index) => {
-                const monthCard = document.createElement('div');
-                monthCard.className = 'month-card';
-                monthCard.innerHTML = `
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📅 ${mes}</h4>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            🦠 Mesófilos Aerobios (Límite: ${data.mesofilosAerobios.limite.toLocaleString()} UFC/g)
-                        </label>
-                        <input type="number" id="producto-mesofilos-${index}" 
-                               value="${data.mesofilosAerobios.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.mesofilosAerobios.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            🧪 Coliformes Totales (Límite: ${data.coliformesTotales.limite.toLocaleString()} UFC/g)
-                        </label>
-                        <input type="number" id="producto-coliformes-${index}" 
-                               value="${data.coliformesTotales.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.coliformesTotales.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            ⚠️ E. coli (Límite: ${data.eColi.limite.toLocaleString()} UFC/g)
-                        </label>
-                        <input type="number" id="producto-ecoli-${index}" 
-                               value="${data.eColi.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.eColi.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                `;
-                container.appendChild(monthCard);
-            });
-        }
-
-        function generateInertesForm() {
-            const container = document.getElementById('inertesForm');
-            const data = currentData.superficiesInertes;
-            
-            container.innerHTML = '';
-            
-            data.meses.forEach((mes, index) => {
-                const monthCard = document.createElement('div');
-                monthCard.className = 'month-card';
-                
-                let mesofilosInputs = '';
-                let coliformesInputs = '';
-                
-                for (let i = 1; i <= 4; i++) {
-                    mesofilosInputs += `
-                        <div class="mb-2">
-                            <label class="block text-xs text-gray-600 mb-1">Resultado ${i}</label>
-                            <input type="number" id="inertes-mesofilos-${i}-${index}" 
-                                   value="${data.mesofilosAerobios[`resultado${i}`][index]}" 
-                                   class="form-input w-full text-sm" 
-                                   onchange="validateInput(this, ${data.mesofilosAerobios.limite})"
-                                   placeholder="UFC/cm²">
-                        </div>
-                    `;
-                    
-                    coliformesInputs += `
-                        <div class="mb-2">
-                            <label class="block text-xs text-gray-600 mb-1">Resultado ${i}</label>
-                            <input type="number" id="inertes-coliformes-${i}-${index}" 
-                                   value="${data.coliformesTotales[`resultado${i}`][index]}" 
-                                   class="form-input w-full text-sm" 
-                                   onchange="validateInput(this, ${data.coliformesTotales.limite})"
-                                   placeholder="UFC/cm²">
-                        </div>
-                    `;
-                }
-                
-                monthCard.innerHTML = `
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📅 ${mes}</h4>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            🦠 Mesófilos Aerobios (Límite: ${data.mesofilosAerobios.limite.toLocaleString()} UFC/cm²)
-                        </label>
-                        ${mesofilosInputs}
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            🧪 Coliformes Totales (Límite: ${data.coliformesTotales.limite.toLocaleString()} UFC/cm²)
-                        </label>
-                        ${coliformesInputs}
-                    </div>
-                `;
-                container.appendChild(monthCard);
-            });
-        }
-
-        function generateVivasForm() {
-            const container = document.getElementById('vivasForm');
-            const data = currentData.superficiesVivas;
-            
-            container.innerHTML = '';
-            
-            data.meses.forEach((mes, index) => {
-                const monthCard = document.createElement('div');
-                monthCard.className = 'month-card';
-                monthCard.innerHTML = `
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📅 ${mes}</h4>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            🦠 Mesófilos Aerobios (Límite: ${data.mesofilosAerobios.limite.toLocaleString()} UFC/cm²)
-                        </label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos en Proceso</label>
-                                <input type="number" id="vivas-mesofilos-proceso-${index}" 
-                                       value="${data.mesofilosAerobios.manosEnProceso[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.mesofilosAerobios.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos Lavadas</label>
-                                <input type="number" id="vivas-mesofilos-lavadas-${index}" 
-                                       value="${data.mesofilosAerobios.manosLavadas[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.mesofilosAerobios.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            🧪 Coliformes Totales (Límite: ${data.coliformesTotales.limite.toLocaleString()} UFC/cm²)
-                        </label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos en Proceso</label>
-                                <input type="number" id="vivas-coliformes-proceso-${index}" 
-                                       value="${data.coliformesTotales.manosEnProceso[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.coliformesTotales.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos Lavadas</label>
-                                <input type="number" id="vivas-coliformes-lavadas-${index}" 
-                                       value="${data.coliformesTotales.manosLavadas[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.coliformesTotales.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            ⚠️ S. Aureus (Límite: ${data.sAureus.limite} UFC/cm²)
-                        </label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos en Proceso</label>
-                                <input type="number" id="vivas-aureus-proceso-${index}" 
-                                       value="${data.sAureus.manosEnProceso[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.sAureus.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-600 mb-1">Manos Lavadas</label>
-                                <input type="number" id="vivas-aureus-lavadas-${index}" 
-                                       value="${data.sAureus.manosLavadas[index]}" 
-                                       class="form-input w-full text-sm" 
-                                       onchange="validateInput(this, ${data.sAureus.limite})"
-                                       placeholder="UFC/cm²">
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(monthCard);
-            });
-        }
-
-        function generateAmbientalForm() {
-            const container = document.getElementById('ambientalForm');
-            const data = currentData.ambiental;
-            
-            container.innerHTML = '';
-            
-            data.meses.forEach((mes, index) => {
-                const monthCard = document.createElement('div');
-                monthCard.className = 'month-card';
-                monthCard.innerHTML = `
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📅 ${mes}</h4>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            🦠 Mesófilos Aerobios (Límite: ${data.mesofilosAerobios.limite.toLocaleString()} UFC/cm³)
-                        </label>
-                        <input type="number" id="ambiental-mesofilos-${index}" 
-                               value="${data.mesofilosAerobios.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.mesofilosAerobios.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            🍄 Mohos (Límite: ${data.mohos.limite.toLocaleString()} UFC/cm³)
-                        </label>
-                        <input type="number" id="ambiental-mohos-${index}" 
-                               value="${data.mohos.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.mohos.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                    
-                    <div class="parameter-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            ⚠️ Listeria (Límite: ${data.listeria.limite} UFC/cm³)
-                        </label>
-                        <input type="number" id="ambiental-listeria-${index}" 
-                               value="${data.listeria.resultados[index]}" 
-                               class="form-input w-full" 
-                               onchange="validateInput(this, ${data.listeria.limite})"
-                               placeholder="Ingrese resultado">
-                    </div>
-                `;
-                container.appendChild(monthCard);
-            });
-        }
-
-        function generateAccionesForm() {
-            const container = document.getElementById('accionesForm');
-            container.innerHTML = '';
-            
-            if (currentData.planAccion && currentData.planAccion.length > 0) {
-                currentData.planAccion.forEach((accion, index) => {
-                    const actionCard = document.createElement('div');
-                    actionCard.className = 'action-card';
-                    actionCard.innerHTML = `
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-lg font-semibold text-gray-800">⚠️ Acción Correctiva #${index + 1}</h4>
-                            <button onclick="removeAction(${index})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                                🗑️ Eliminar
-                            </button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">📅 Fecha</label>
-                                <input type="date" id="accion-fecha-${index}" 
-                                       value="${accion.fecha}" 
-                                       class="form-input w-full">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">🔬 Tipo de Muestreo</label>
-                                <select id="accion-muestreo-${index}" class="form-input w-full">
-                                    <option value="PP" ${accion.muestreo === 'PP' ? 'selected' : ''}>Producto en Proceso</option>
-                                    <option value="SI" ${accion.muestreo === 'SI' ? 'selected' : ''}>Superficies Inertes</option>
-                                    <option value="SV" ${accion.muestreo === 'SV' ? 'selected' : ''}>Superficies Vivas</option>
-                                    <option value="AM" ${accion.muestreo === 'AM' ? 'selected' : ''}>Ambiental</option>
-                                </select>
-                            </div>
-                            
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">📊 Resultado</label>
-                                <textarea id="accion-resultado-${index}" 
-                                          class="form-input w-full h-20 resize-none" 
-                                          placeholder="Describe el resultado que generó la no conformidad">${accion.resultado}</textarea>
-                            </div>
-                            
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">🔧 Acción Correctiva</label>
-                                <textarea id="accion-correctiva-${index}" 
-                                          class="form-input w-full h-24 resize-none" 
-                                          placeholder="Describe la acción correctiva implementada">${accion.accionCorrectiva}</textarea>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Responsable</label>
-                                <input type="text" id="accion-responsable-${index}" 
-                                       value="${accion.responsable}" 
-                                       class="form-input w-full" 
-                                       placeholder="Nombre del responsable">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">✅ Fecha de Cierre</label>
-                                <input type="date" id="accion-cierre-${index}" 
-                                       value="${accion.fechaCierre}" 
-                                       class="form-input w-full">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">📋 Estado</label>
-                                <select id="accion-estado-${index}" class="form-input w-full">
-                                    <option value="Abierta" ${accion.estado === 'Abierta' ? 'selected' : ''}>Abierta</option>
-                                    <option value="En Proceso" ${accion.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-                                    <option value="Cerrada" ${accion.estado === 'Cerrada' ? 'selected' : ''}>Cerrada</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(actionCard);
-                });
-            } else {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <p class="text-lg">📋 No hay acciones correctivas registradas</p>
-                        <p class="text-sm mt-2">Haz clic en "Nueva Acción" para agregar la primera acción correctiva</p>
-                    </div>
-                `;
-            }
-        }
-
-        function validateInput(input, limit) {
-            const value = parseFloat(input.value) || 0;
-            
-            input.classList.remove('error', 'success');
-            
-            if (value > limit) {
-                input.classList.add('error');
-            } else {
-                input.classList.add('success');
-            }
-            
-            setTimeout(autoSaveData, 500);
-        }
-
-        function addNewAction() {
-            const newAction = {
-                fecha: new Date().toISOString().split('T')[0],
-                muestreo: 'PP',
-                resultado: '',
-                accionCorrectiva: '',
-                responsable: '',
-                fechaCierre: '',
-                estado: 'Abierta'
-            };
-            
-            if (!currentData.planAccion) {
-                currentData.planAccion = [];
-            }
-            
-            currentData.planAccion.push(newAction);
-            generateAccionesForm();
-        }
-
-        function removeAction(index) {
-            if (confirm('¿Estás seguro de que quieres eliminar esta acción correctiva?')) {
-                currentData.planAccion.splice(index, 1);
-                generateAccionesForm();
-                autoSaveData();
-            }
-        }
-
-        function collectActionData() {
-            if (!currentData.planAccion) return;
-            
-            currentData.planAccion.forEach((accion, index) => {
-                const fecha = document.getElementById(`accion-fecha-${index}`)?.value;
-                const muestreo = document.getElementById(`accion-muestreo-${index}`)?.value;
-                const resultado = document.getElementById(`accion-resultado-${index}`)?.value;
-                const correctiva = document.getElementById(`accion-correctiva-${index}`)?.value;
-                const responsable = document.getElementById(`accion-responsable-${index}`)?.value;
-                const cierre = document.getElementById(`accion-cierre-${index}`)?.value;
-                const estado = document.getElementById(`accion-estado-${index}`)?.value;
-                
-                if (fecha !== undefined) accion.fecha = fecha;
-                if (muestreo !== undefined) accion.muestreo = muestreo;
-                if (resultado !== undefined) accion.resultado = resultado;
-                if (correctiva !== undefined) accion.accionCorrectiva = correctiva;
-                if (responsable !== undefined) accion.responsable = responsable;
-                if (cierre !== undefined) accion.fechaCierre = cierre;
-                if (estado !== undefined) accion.estado = estado;
-            });
-        }
-
-        // Inicialización cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function() {
-            const sharedDataLoaded = loadSharedData();
-            
-            if (!sharedDataLoaded) {
-                loadSavedData();
-            }
-            
-            // Cargar códigos compartidos existentes
-            sharedDataCodes = JSON.parse(localStorage.getItem('sharedDataCodes') || '{}');
-            updateSyncStatus();
-            
-            showTab('resumen');
-            
-            const now = new Date().toLocaleString('es-ES');
-            if (!document.getElementById('lastUpdate').textContent) {
-                document.getElementById('lastUpdate').textContent = now;
-            }
-            
-            console.log('✅ Dashboard inicializado correctamente');
         });
+
+        function setActiveTab(tabId) {
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+        }
+
+        // --- LÓGICA DE RENDERIZADO ---
+        function renderContent(tabId) {
+            const tabContentContainer = document.getElementById('tab-content');
+            setActiveTab(tabId);
+            tabContentContainer.innerHTML = ''; 
+            
+            const sectionConfig = config[tabId];
+            const data = dbData[tabId] || [];
+
+            const container = document.createElement('div');
+            container.id = `section-${tabId}`;
+            container.className = 'bg-white p-6 rounded-lg shadow-md';
+
+            let contentHTML = `<h2 class="text-2xl font-bold text-gray-700 mb-4">${sectionConfig.title}</h2>`;
+
+            if (data.length === 0 && tabId !== 'plan') {
+                contentHTML += `<p class="text-center text-gray-500 py-8">No hay datos registrados para esta sección todavía.</p>`;
+            } else if (tabId !== 'plan') {
+                contentHTML += `<div class="chart-container mb-6"><canvas id="chart-${tabId}"></canvas></div><div class="overflow-x-auto">${generateTableHTML(tabId, data)}</div>`;
+            } else {
+                 contentHTML += `<div class="overflow-x-auto">${generatePlanTableHTML(data)}</div>`;
+            }
+            
+            container.innerHTML = contentHTML;
+            tabContentContainer.appendChild(container);
+
+            if (tabId !== 'plan' && data.length > 0) {
+                renderChart(tabId, data);
+            }
+        }
+
+        function generateTableHTML(tabId, data) {
+            // ... (El código de las funciones generateTableHTML, getStatus y generatePlanTableHTML es idéntico a la versión anterior, no necesita cambios)
+            let headers = ['Mes'];
+            let bodyRows = '';
+            const sectionConfig = config[tabId];
+
+            if (tabId === 'proceso' || tabId === 'ambiental') {
+                headers.push(...Object.keys(sectionConfig.limits).map(k => `${k.charAt(0).toUpperCase() + k.slice(1)} (${sectionConfig.unit})`), 'Cumplimiento');
+                
+                meses.forEach(mes => {
+                    const monthData = data.find(d => d.mes === mes);
+                    bodyRows += `<tr><td class="border px-4 py-2 font-medium">${mes}</td>`;
+                    if (monthData) {
+                        let overallStatus = true;
+                        Object.keys(sectionConfig.limits).forEach(key => {
+                            const value = monthData[key];
+                            const limit = sectionConfig.limits[key];
+                            if(value > limit) overallStatus = false;
+                            bodyRows += `<td class="border px-4 py-2 text-center">${value ?? '-'}</td>`;
+                        });
+                        bodyRows += `<td class="border px-4 py-2 text-center">${overallStatus ? getStatus(0,1) : getStatus(1,0)}</td>`;
+                    } else {
+                        bodyRows += `<td class="border px-4 py-2 text-center" colspan="${Object.keys(sectionConfig.limits).length + 1}">Sin datos</td>`;
+                    }
+                    bodyRows += `</tr>`;
+                });
+            } else if (tabId === 'inertes') {
+                headers.push('Mesofílicos aerobios (Resultados 1-4)', 'Coliformes totales (Resultados 1-4)', 'Cumplimiento');
+                 meses.forEach(mes => {
+                    const monthData = data.find(d => d.mes === mes);
+                    bodyRows += `<tr><td class="border px-4 py-2 font-medium">${mes}</td>`;
+                    if(monthData) {
+                        const mesofilosMax = Math.max(...monthData.mesofilos);
+                        const coliformesMax = Math.max(...monthData.coliformes);
+                        const status = (mesofilosMax <= sectionConfig.limits.mesofilos && coliformesMax <= sectionConfig.limits.coliformes);
+                        bodyRows += `<td class="border px-4 py-2 text-center">${monthData.mesofilos.join(', ')}</td>`;
+                        bodyRows += `<td class="border px-4 py-2 text-center">${monthData.coliformes.join(', ')}</td>`;
+                        bodyRows += `<td class="border px-4 py-2 text-center">${status ? getStatus(0,1) : getStatus(1,0)}</td>`;
+                    } else {
+                         bodyRows += `<td class="border px-4 py-2 text-center" colspan="3">Sin datos</td>`;
+                    }
+                    bodyRows += `</tr>`;
+                });
+            } else if (tabId === 'vivas') {
+                 headers.push('Tipo de Muestra', 'Mesofílicos aerobios', 'Coliformes totales', 'S. Aureus', 'Cumplimiento');
+                 meses.forEach(mes => {
+                     const monthData = data.filter(d => d.mes === mes);
+                     if (monthData.length > 0) {
+                         monthData.forEach((sample, index) => {
+                             const status = sample.mesofilos <= sectionConfig.limits.mesofilos && sample.coliformes <= sectionConfig.limits.coliformes && sample.saureus <= sectionConfig.limits.saureus;
+                              bodyRows += `<tr>`;
+                              if(index === 0) bodyRows += `<td class="border px-4 py-2 font-medium" rowspan="${monthData.length}">${mes}</td>`;
+                              bodyRows += `<td class="border px-4 py-2">${sample.tipo}</td>`;
+                              bodyRows += `<td class="border px-4 py-2 text-center">${sample.mesofilos}</td>`;
+                              bodyRows += `<td class="border px-4 py-2 text-center">${sample.coliformes}</td>`;
+                              bodyRows += `<td class="border px-4 py-2 text-center">${sample.saureus}</td>`;
+                              bodyRows += `<td class="border px-4 py-2 text-center">${status ? getStatus(0,1) : getStatus(1,0)}</td>`;
+                              bodyRows += `</tr>`;
+                         });
+                     } else {
+                          bodyRows += `<tr><td class="border px-4 py-2 font-medium">${mes}</td><td class="border px-4 py-2 text-center" colspan="5">Sin datos</td></tr>`;
+                     }
+                 });
+            }
+
+            return `
+                <table class="table-auto w-full text-left">
+                    <thead class="bg-gray-100"><tr>${headers.map(h => `<th class="px-4 py-2">${h}</th>`).join('')}</tr></thead>
+                    <tbody>${bodyRows}</tbody>
+                </table>`;
+        }
+        
+        function getStatus(value, limit) { return value > limit ? '<span class="status-no-cumple">No Cumple</span>' : '<span class="status-cumple">Cumple</span>'; }
+
+        function generatePlanTableHTML(data) {
+             const headers = ['Fecha', 'Muestreo', 'Hallazgo', 'Acción Correctiva', 'Responsable', 'Fecha Cierre', 'Estado'];
+            let bodyRows = '';
+
+            if (data.length === 0) {
+                return '<p class="text-gray-500 text-center py-4">No hay acciones correctivas pendientes. ¡Excelente trabajo!</p>';
+            }
+
+            data.forEach(item => {
+                const status = item.cierre ? '<span class="status-cumple">Cerrado</span>' : '<span class="status-no-cumple">Abierto</span>';
+                const fecha = item.fecha instanceof Date ? item.fecha.toLocaleDateString() : item.fecha;
+                bodyRows += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border px-4 py-3">${fecha}</td>
+                        <td class="border px-4 py-3">${item.muestreo}</td>
+                        <td class="border px-4 py-3">${item.hallazgo}</td>
+                        <td class="border px-4 py-3">${item.accion || 'N/A'}</td>
+                        <td class="border px-4 py-3">${item.responsable || 'N/A'}</td>
+                        <td class="border px-4 py-3">${item.cierre || 'Pendiente'}</td>
+                        <td class="border px-4 py-3 text-center">${status}</td>
+                    </tr>`;
+            });
+            return `<table class="table-auto w-full text-sm"><thead class="bg-gray-100"><tr>${headers.map(h => `<th class="px-4 py-2 font-medium text-gray-600">${h}</th>`).join('')}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+        }
+
+        function renderChart(tabId, rawData) {
+            // ... (La lógica de renderChart es idéntica a la versión anterior, no necesita cambios)
+             const data = [...rawData].sort((a,b) => meses.indexOf(a.mes) - meses.indexOf(b.mes));
+            const ctx = document.getElementById(`chart-${tabId}`).getContext('2d');
+            if (charts[tabId]) {
+                charts[tabId].destroy();
+            }
+
+            const sectionConfig = config[tabId];
+            let datasets = [];
+            const chartLabels = data.map(d => d.mes);
+            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f97316', '#8b5cf6'];
+
+            if (tabId === 'proceso' || tabId === 'ambiental') {
+                Object.keys(sectionConfig.limits).forEach((key, index) => {
+                    datasets.push({
+                        label: `${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                        data: data.map(d => d[key]),
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length] + '33',
+                        tension: 0.1,
+                        fill: false,
+                    });
+                    datasets.push({
+                        label: `Límite ${key}`,
+                        data: Array(data.length).fill(sectionConfig.limits[key]),
+                        borderColor: colors[index % colors.length],
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false,
+                    });
+                });
+            } else if (tabId === 'inertes') {
+                datasets.push({ label: 'Mesofílicos (Máx)', data: data.map(d => Math.max(...d.mesofilos)), borderColor: colors[0], tension: 0.1 });
+                datasets.push({ label: 'Límite Mesofílicos', data: Array(data.length).fill(sectionConfig.limits.mesofilos), borderColor: colors[0], borderDash: [5, 5], pointRadius: 0 });
+                datasets.push({ label: 'Coliformes (Máx)', data: data.map(d => Math.max(...d.coliformes)), borderColor: colors[1], tension: 0.1 });
+                datasets.push({ label: 'Límite Coliformes', data: Array(data.length).fill(sectionConfig.limits.coliformes), borderColor: colors[1], borderDash: [5, 5], pointRadius: 0 });
+            } else if (tabId === 'vivas') {
+                 // Group data by month first
+                const monthlyData = {};
+                data.forEach(d => {
+                    if (!monthlyData[d.mes]) {
+                        monthlyData[d.mes] = { 'Manos en Proceso': {}, 'Manos Lavadas': {} };
+                    }
+                    monthlyData[d.mes][d.tipo] = d;
+                });
+
+                const labels = Object.keys(monthlyData).sort((a,b) => meses.indexOf(a) - meses.indexOf(b));
+                const manosProcesoData = labels.map(mes => monthlyData[mes]['Manos en Proceso']?.mesofilos);
+                const manosLavadasData = labels.map(mes => monthlyData[mes]['Manos Lavadas']?.mesofilos);
+
+                datasets.push({ label: 'Mesofílicos (Proceso)', data: manosProcesoData, borderColor: colors[0], tension: 0.1 });
+                datasets.push({ label: 'Mesofílicos (Lavadas)', data: manosLavadasData, borderColor: colors[2], tension: 0.1 });
+                datasets.push({ label: `Límite Mesofílicos`, data: Array(labels.length).fill(sectionConfig.limits.mesofilos), borderColor: '#a1a1aa', borderDash: [5, 5], pointRadius: 0, fill: false });
+
+            }
+
+            charts[tabId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels: chartLabels, datasets: datasets },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { title: { display: true, text: `Tendencia de Resultados vs Límites (${sectionConfig.unit})` }, legend: { position: 'bottom' } } }
+            });
+        }
+        
+        // --- MODAL Y FORMULARIOS ---
+        const modal = document.getElementById('data-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const form = document.getElementById('data-form');
+
+        document.getElementById('add-record-btn').addEventListener('click', () => {
+            modalTitle.textContent = `Añadir Registro para ${config[activeTab].title}`;
+            generateForm(activeTab);
+            modal.classList.add('active');
+        });
+
+        document.getElementById('modal-close').addEventListener('click', () => modal.classList.remove('active'));
+
+        function generateForm(tabId) {
+            form.innerHTML = '';
+            const sectionConfig = config[tabId];
+            let fieldsHTML = `
+                <div>
+                    <label for="mes" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select id="mes" name="mes" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        ${meses.map(m => `<option value="${m}">${m}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            
+            const inputField = (name, label, required = true) => `
+                <div>
+                    <label for="${name}" class="block text-sm font-medium text-gray-700">${label}</label>
+                    <input type="number" name="${name}" id="${name}" ${required ? 'required' : ''} class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                </div>`;
+            
+            if (tabId === 'proceso' || tabId === 'ambiental') {
+                Object.keys(sectionConfig.limits).forEach(key => {
+                    fieldsHTML += inputField(key, `${key.charAt(0).toUpperCase() + key.slice(1)} (${sectionConfig.unit})`);
+                });
+            } else if (tabId === 'inertes') {
+                fieldsHTML += '<p class="text-sm font-medium text-gray-800">Mesofílicos Aerobios (4 Muestras)</p>';
+                for(let i=1; i<=4; i++) fieldsHTML += inputField(`mesofilos_${i}`, `Resultado ${i}`);
+                fieldsHTML += '<p class="text-sm font-medium text-gray-800 mt-4">Coliformes Totales (4 Muestras)</p>';
+                for(let i=1; i<=4; i++) fieldsHTML += inputField(`coliformes_${i}`, `Resultado ${i}`);
+            } else if (tabId === 'vivas') {
+                 fieldsHTML += `
+                    <div>
+                        <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo de Muestra</label>
+                        <select id="tipo" name="tipo" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="Manos en Proceso">Manos en Proceso</option>
+                            <option value="Manos Lavadas">Manos Lavadas</option>
+                        </select>
+                    </div>
+                `;
+                 fieldsHTML += inputField('mesofilos', `Mesofílicos aerobios (${sectionConfig.unit})`);
+                 fieldsHTML += inputField('coliformes', `Coliformes totales (${sectionConfig.unit})`);
+                 fieldsHTML += inputField('saureus', `S. Aureus (${sectionConfig.unit})`);
+            }
+
+            fieldsHTML += `<button type="submit" class="w-full mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Guardar Registro</button>`;
+            form.innerHTML = fieldsHTML;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = {};
+            for (let [key, value] of formData.entries()) {
+                data[key] = isNaN(parseFloat(value)) ? value : parseFloat(value);
+            }
+
+            const docId = data.mes + (data.tipo ? `_${data.tipo.replace(/\s+/g, '')}` : '');
+            let dataToSave = { mes: data.mes };
+            
+            if (activeTab === 'inertes') {
+                dataToSave.mesofilos = [data.mesofilos_1, data.mesofilos_2, data.mesofilos_3, data.mesofilos_4];
+                dataToSave.coliformes = [data.coliformes_1, data.coliformes_2, data.coliformes_3, data.coliformes_4];
+            } else if (activeTab === 'vivas') {
+                dataToSave.tipo = data.tipo;
+                Object.assign(dataToSave, { mesofilos: data.mesofilos, coliformes: data.coliformes, saureus: data.saureus });
+            } else {
+                 Object.assign(dataToSave, data);
+            }
+            
+            try {
+                const docRef = doc(db, `/artifacts/${appId}/public/data/${activeTab}`, docId);
+                await setDoc(docRef, dataToSave);
+                await checkLimitsAndCreateActionPlan(dataToSave, activeTab);
+                modal.classList.remove('active');
+                alert('Registro guardado exitosamente.');
+            } catch (error) {
+                console.error("Error al guardar el documento: ", error);
+                alert('Hubo un error al guardar el registro.');
+            }
+        });
+
+        async function checkLimitsAndCreateActionPlan(data, type) {
+            const sectionConfig = config[type];
+            let findings = [];
+            const today = new Date().toISOString().split('T')[0];
+
+            if (type === 'proceso' || type === 'ambiental') {
+                Object.keys(sectionConfig.limits).forEach(key => {
+                    if (data[key] > sectionConfig.limits[key]) {
+                        findings.push(`${key}: ${data[key]} ${sectionConfig.unit} (Límite: ${sectionConfig.limits[key]})`);
+                    }
+                });
+            } else if (type === 'inertes') {
+                const maxMesofilos = Math.max(...data.mesofilos);
+                const maxColiformes = Math.max(...data.coliformes);
+                if (maxMesofilos > sectionConfig.limits.mesofilos) findings.push(`Mesofílicos aerobios: ${maxMesofilos} ${sectionConfig.unit} (Límite: ${sectionConfig.limits.mesofilos})`);
+                if (maxColiformes > sectionConfig.limits.coliformes) findings.push(`Coliformes totales: ${maxColiformes} ${sectionConfig.unit} (Límite: ${sectionConfig.limits.coliformes})`);
+            } else if (type === 'vivas') {
+                 if (data.mesofilos > sectionConfig.limits.mesofilos) findings.push(`Mesofílicos aerobios (${data.tipo}): ${data.mesofilos} ${sectionConfig.unit} (Límite: ${sectionConfig.limits.mesofilos})`);
+                 if (data.coliformes > sectionConfig.limits.coliformes) findings.push(`Coliformes totales (${data.tipo}): ${data.coliformes} ${sectionConfig.unit} (Límite: ${sectionConfig.limits.coliformes})`);
+                 if (data.saureus > sectionConfig.limits.saureus) findings.push(`S. Aureus (${data.tipo}): ${data.saureus} ${sectionConfig.unit} (Límite: ${sectionConfig.limits.saureus})`);
+            }
+
+            for (const finding of findings) {
+                const planData = {
+                    fecha: today,
+                    muestreo: `${sectionConfig.title} - ${data.mes}`,
+                    hallazgo: finding,
+                    accion: '',
+                    responsable: '',
+                    cierre: '',
+                    createdAt: serverTimestamp()
+                };
+                await addDoc(collection(db, `/artifacts/${appId}/public/data/plan`), planData);
+            }
+        }
+        
+        // --- EXPORTAR A PDF ---
+        document.getElementById('export-pdf-btn').addEventListener('click', () => {
+             // ... (El código de exportar a PDF es idéntico a la versión anterior, no necesita cambios)
+            const loadingModal = document.getElementById('loading-modal');
+            loadingModal.classList.add('active');
+
+            const { jsPDF } = window.jspdf;
+            const originalTab = activeTab;
+            
+            const allSections = document.createElement('div');
+            allSections.id = 'pdf-render-area';
+            allSections.style.width = '1200px';
+
+            Object.keys(config).forEach(key => {
+                const sectionContainer = document.createElement('div');
+                renderContentForPrinting(key, sectionContainer);
+                allSections.appendChild(sectionContainer);
+            });
+
+            document.body.appendChild(allSections);
+            
+            html2canvas(allSections, { scale: 2, useCORS: true, windowWidth: 1200 }).then(canvas => {
+                document.body.removeChild(allSections);
+                renderContent(originalTab); // Restore view
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`Reporte_Microbiologico_TIF_2025.pdf`);
+                loadingModal.classList.remove('active');
+            }).catch(err => {
+                 console.error("Error al generar el PDF:", err);
+                 loadingModal.classList.remove('active');
+                 if(document.getElementById('pdf-render-area')) document.body.removeChild(allSections);
+                 renderContent(originalTab);
+            });
+        });
+
+        function renderContentForPrinting(tabId, container) {
+            const sectionConfig = config[tabId];
+            const data = dbData[tabId] || [];
+            
+            container.className = 'bg-white p-6 rounded-lg shadow-md mt-8 page-break-before';
+            let contentHTML = `<h2 class="text-2xl font-bold text-gray-700 mb-4">${sectionConfig.title}</h2>`;
+
+            if (data.length === 0 && tabId !== 'plan') {
+                contentHTML += `<p class="text-center text-gray-500 py-8">Sin datos</p>`
+            } else if (tabId !== 'plan') {
+                contentHTML += `<div class="chart-container mb-6" style="height: 300px;"><canvas id="chart-print-${tabId}"></canvas></div><div class="overflow-x-auto">${generateTableHTML(tabId, data)}</div>`;
+            } else {
+                 contentHTML += `<div class="overflow-x-auto">${generatePlanTableHTML(data)}</div>`;
+            }
+            container.innerHTML = contentHTML;
+            if (tabId !== 'plan' && data.length > 0) {
+                setTimeout(() => renderChart(`print-${tabId}`, data), 100);
+            }
+        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9787b292f23ee7a2',t:'MTc1Njc2MDQzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
+
